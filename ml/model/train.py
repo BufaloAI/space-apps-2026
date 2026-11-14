@@ -197,7 +197,9 @@ def git_commit() -> str:
 
 
 # ---------------------------------------------------------------- ana akış
-def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: Path | None = None) -> Path:
+def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: Path | None = None,
+        set_latest: bool = True) -> Path:
+    """Eğitir ve çıktıları yazar. set_latest=True ise ml/runs/LATEST bu modeli gösterir (testlerde False)."""
     df = pd.read_parquet(features_path)
     sc, mc, pc = cfg.get("split", {}), cfg.get("model", {}), cfg.get("prune", {})
     synthetic = bool(json.loads(Path(features_path).with_suffix(".report.json").read_text()).get("synthetic", False)) \
@@ -278,7 +280,9 @@ def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: P
     (out / "metrics.json").write_text(json.dumps(metrics, indent=1, ensure_ascii=False, default=float))
     (out / "config_used.toml").write_text(DEFAULT_CONFIG.read_text() if DEFAULT_CONFIG.exists() else "")
     (out / "git_commit.txt").write_text(git_commit())
-    (RUNS_DIR / "LATEST").write_text(str(out.resolve()))
+    if set_latest:
+        RUNS_DIR.mkdir(parents=True, exist_ok=True)  # yeni klonda ml/runs yok (.gitignore)
+        (RUNS_DIR / "LATEST").write_text(str(out.resolve()))
     log.info("model kaydedildi: %s", out)
     return out
 

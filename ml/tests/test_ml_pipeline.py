@@ -137,7 +137,8 @@ def trained(sample_paths):
 
     cfg = load_config()
     cfg["model"]["num_boost_round"] = 300
-    out = train.run(str(sample_paths["features"]), cfg, out_dir=sample_paths["dir"] / "run")
+    out = train.run(str(sample_paths["features"]), cfg, out_dir=sample_paths["dir"] / "run",
+                    set_latest=False)  # gerçek ml/runs/LATEST'e dokunma
     return out
 
 

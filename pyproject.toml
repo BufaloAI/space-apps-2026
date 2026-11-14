@@ -27,4 +27,4 @@ nasa = [
 
 [tool.pytest.ini_options]
 pythonpath = ["backend", "."]
-testpaths = ["backend/tests", "ml/tests"]
+testpaths = ["backend/tests", "ml"]
