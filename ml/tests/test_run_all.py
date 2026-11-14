@@ -12,15 +12,15 @@ def test_fallback_to_ornl_when_appeears_down(tmp_path, monkeypatch):
     monkeypatch.setattr(R, "LOGS", tmp_path)
     monkeypatch.setattr(R, "STATE", tmp_path / "state.json")
     (tmp_path / "appeears_smoke.log").write_text("RuntimeError: giving up on POST login: HTTP Error 504")
-    have = {"MOD13Q1": {"a": 10}}  # a zaten var
+    have = {"MOD13Q1": {"a": 46, "b": 12}}  # a tam, b yarım (tekrar denenmeli)
     calls = []
 
     def fake_run(ctx, step, args, timeout_h=8):
         calls.append((step, args))
         if step == "ornl_ndvi":
             asked = [x["area_id"] for x in json.loads(open(args[args.index("--areas") + 1]).read())]
-            assert "a" not in asked  # yalnızca eksikler istenir
-            have["MOD13Q1"].update({k: 5 for k in asked})
+            assert "a" not in asked and "b" in asked  # tam olan istenmez, yarım olan istenir
+            have["MOD13Q1"].update({k: 46 for k in asked})
         return step != "appeears_smoke"
 
     monkeypatch.setattr(R, "run_cmd", fake_run)

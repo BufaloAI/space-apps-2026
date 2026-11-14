@@ -97,7 +97,7 @@ class ParcelService:
             progress("data", {"source": "ndvi", "status": "started"})
             n_end = today - dt.timedelta(days=self.ndvi_latency_days)
             df = download.fetch_modis_ornl(AREA, lat, lon, n_start, n_end, "MOD13Q1", timeout=self.ndvi_timeout,
-                                           retries=self.ndvi_retries, parallel=True)
+                                           retries=self.ndvi_retries, parallel=True, patient=False)
             progress("data", {"source": "ndvi", "status": "done", "rows": len(df)})
             return df
 

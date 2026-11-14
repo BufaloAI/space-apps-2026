@@ -80,3 +80,36 @@ def test_composite_dates_and_parallel(monkeypatch):
     monkeypatch.setattr(dl, "_fetch_json", fake)
     df = dl.fetch_modis_ornl("a", 1.0, 2.0, "2025-01-01", "2025-01-10", parallel=True)
     assert df["250m_16_days_NDVI"].tolist() == [5000.0]
+
+
+def test_ornl_slow_backoff(monkeypatch):
+    import urllib.error
+
+    sleeps = []
+    monkeypatch.setattr(dl._time, "sleep", lambda s: sleeps.append(s))
+    monkeypatch.setattr(dl, "_throttle", lambda host: None)
+
+    def boom(*a, **k):
+        raise urllib.error.HTTPError("u", 503, "Service Unavailable", {}, None)
+
+    monkeypatch.setattr(dl.urllib.request, "urlopen", boom)
+    try:
+        dl._fetch_json("https://modis.ornl.gov/rst/api/v1/MOD13Q1/subset?x=1", timeout=1, retries=1)
+    except RuntimeError:
+        pass
+    assert len(sleeps) == 6 and sleeps[0] >= 15 and max(sleeps) <= 125  # ORNL: en az 6 deneme, uzun bekleme
+
+
+def test_ornl_impatient_for_live_requests(monkeypatch):
+    import urllib.error
+
+    sleeps = []
+    monkeypatch.setattr(dl._time, "sleep", lambda s: sleeps.append(s))
+    monkeypatch.setattr(dl, "_throttle", lambda host: None)
+    monkeypatch.setattr(dl.urllib.request, "urlopen",
+                        lambda *a, **k: (_ for _ in ()).throw(urllib.error.HTTPError("u", 503, "x", {}, None)))
+    try:
+        dl._fetch_json("https://modis.ornl.gov/rst/api/v1/x", timeout=1, retries=2, patient=False)
+    except RuntimeError:
+        pass
+    assert len(sleeps) == 2 and max(sleeps) < 10  # backend: kısa bekleme, az deneme

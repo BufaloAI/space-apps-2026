@@ -28,6 +28,8 @@ USER_AGENT = "field-shift-research/0.1"
 TIMEOUT_S = 60
 MAX_RETRIES = 4
 MIN_INTERVAL_S = 0.5  # host başına en fazla 2 istek/sn
+# ORNL aşırı yüklenince 503 döner: bu hostta tekrar denemeler arası çok daha uzun beklenir
+SLOW_HOSTS = {"modis.ornl.gov": {"base_s": 15.0, "max_s": 120.0, "min_retries": 6}}
 BASE_COLS = ["source", "area_id", "lat", "lon", "time"]
 KEY_COLS = ["source", "area_id", "lat", "lon", "time"]
 
@@ -57,9 +59,12 @@ def _throttle(host: str) -> None:
         _last_call[host] = _time.monotonic()
 
 
-def _fetch_json(url: str, timeout: float = TIMEOUT_S, retries: int = MAX_RETRIES) -> dict:
+def _fetch_json(url: str, timeout: float = TIMEOUT_S, retries: int = MAX_RETRIES, patient: bool = True) -> dict:
     """URL'den JSON okur: timeout, üstel geri çekilme + jitter ile yeniden deneme."""
     host = urllib.parse.urlparse(url).netloc
+    slow = SLOW_HOSTS.get(host) if patient else None  # canlı (kullanıcı bekliyor) isteklerde sabırsız mod
+    if slow:
+        retries = max(retries, slow["min_retries"])
     last: Exception | None = None
     for attempt in range(retries + 1):
         _throttle(host)
@@ -77,6 +82,8 @@ def _fetch_json(url: str, timeout: float = TIMEOUT_S, retries: int = MAX_RETRIES
             last = e
         if attempt < retries:
             delay = 2 ** attempt + random.uniform(0, 1)
+            if slow:  # 15, 30, 60, 120, 120... sn (+ rastgele) -> sunucuya nefes aldır
+                delay = min(slow["max_s"], slow["base_s"] * 2 ** attempt) + random.uniform(0, 5)
             log.warning("retry %d/%d in %.1fs: %s", attempt + 1, retries, delay, last)
             _time.sleep(delay)
     raise RuntimeError(f"giving up on {url}: {last}")
@@ -158,7 +165,8 @@ def composite_dates(product: str, start, end) -> list[str]:
 
 def fetch_modis_ornl(area_id: str, lat: float, lon: float, start, end,
                      product: str = "MOD13Q1", bands: Sequence[str] | None = None,
-                     timeout: float = TIMEOUT_S, retries: int = MAX_RETRIES, parallel: bool = False) -> pd.DataFrame:
+                     timeout: float = TIMEOUT_S, retries: int = MAX_RETRIES, parallel: bool = False,
+                     patient: bool = True) -> pd.DataFrame:
     """ORNL DAAC MODIS web servisi, tek piksel (km=0).
 
     Birden fazla piksel dönerse MERKEZ piksel alınır (data[len//2]).
@@ -183,7 +191,7 @@ def fetch_modis_ornl(area_id: str, lat: float, lon: float, start, end,
             "startDate": ch[0], "endDate": ch[-1],
             "kmAboveBelow": 0, "kmLeftRight": 0})
         try:
-            resp = _fetch_json(f"{base}/subset?{q}", timeout, retries)
+            resp = _fetch_json(f"{base}/subset?{q}", timeout, retries, patient)
         except Exception as ex:  # noqa: BLE001  (bir parça düşerse diğerleri korunur; tekrar çalıştırmak güvenli)
             log.warning("%s %s %s %s..%s atlandı: %s", product, area_id, b, ch[0], ch[-1], ex)
             return

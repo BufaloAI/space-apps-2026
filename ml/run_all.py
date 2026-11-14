@@ -288,22 +288,35 @@ def appeears_smoke(ctx: Ctx, areas: Path) -> bool:
     return True
 
 
+ORNL_MIN_COMPOSITES = 35  # 2 yılda ~46 kompozit beklenir; altı "yarım" sayılır ve tekrar denenir
+
+
+def ndvi_complete() -> set[str]:
+    return {a for a, n in raw_coverage("MOD13Q1", "NDVI").items() if n >= ORNL_MIN_COMPOSITES}
+
+
 def ornl_ndvi_fallback(ctx: Ctx, areas: Path, want: set[str]) -> bool:
-    """AppEEARS yoksa NDVI'yı ORNL MODIS servisinden çeker (yavaş ama girişsiz). Yalnızca NDVI gelir."""
-    have = set(raw_coverage("MOD13Q1", "NDVI"))
+    """AppEEARS yoksa NDVI'yı ORNL MODIS servisinden çeker (yavaş ama girişsiz). Yalnızca NDVI gelir.
+    ORNL aşırı yüklenince 503 verdiği için tek işçiyle ve uzun beklemelerle çalışır; yarım kalan tarlalar
+    (az kompozit) sonraki turlarda tekrar denenir."""
+    have = ndvi_complete()
     if want <= have:
         ctx.note("appeears", OK, f"yedek: NDVI (ORNL) zaten {len(want)} tarlada var")
         return True
     ctx.note("appeears", WARN, f"yedek: NDVI ORNL'den çekiliyor ({len(want - have)} tarla; yavaş, ~1 sa+)")
-    for attempt in (1, 2):  # ORNL bazı istekleri düşürür; ikinci tur yalnızca eksikleri dener
-        miss = sorted(want - set(raw_coverage("MOD13Q1", "NDVI")))
+    for attempt in (1, 2, 3):  # ORNL bazı istekleri düşürür; sonraki turlar yalnızca eksik/yarım tarlaları dener
+        miss = sorted(want - ndvi_complete())
         if not miss:
             break
         sub = CACHE / "areas_ornl_missing.json"
         sub.write_text(json.dumps([a for a in json.loads(areas.read_text()) if a["area_id"] in miss]))
         run_cmd(ctx, "ornl_ndvi", ["ml.data_load.download", "--areas", str(sub), "--start", ctx.a.start, "--end",
-                                   ctx.a.end, "--out", str(RAW), "--sources", "modis", "--workers", "2"])
+                                   ctx.a.end, "--out", str(RAW), "--sources", "modis", "--workers", "1"])
     got = want & set(raw_coverage("MOD13Q1", "NDVI"))
+    full = want & ndvi_complete()
+    if got != full:
+        ctx.note("appeears", WARN, f"yarım NDVI (< {ORNL_MIN_COMPOSITES} kompozit): {len(got - full)} tarla "
+                                   "(eğitimde kullanılır, boşlukları NaN)")
     ctx.note("appeears", OK if got == want else (WARN if got else FAIL), f"yedek NDVI (ORNL): {len(got)}/{len(want)} tarla")
     if got != want:
         ctx.todo.append("Bazı tarlalarda NDVI eksik; tekrar denemek için: uv run python -m ml.run_all --only appeears,build,train,verify")
