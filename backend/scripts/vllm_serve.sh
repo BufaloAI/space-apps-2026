@@ -11,6 +11,10 @@ if [ ! -s "$KEY_FILE" ]; then
   ( umask 077; python3 -c "import secrets; print('sk-' + secrets.token_urlsafe(32))" > "$KEY_FILE" )
 fi
 export VLLM_API_KEY="$(cat "$KEY_FILE")"   # komut satırında görünmesin diye env ile veriyoruz
+# CUDA toolkit (nvcc) kurulu olmayan makinelerde DeepGEMM açılışta çöküyor; kapatınca normal FP8 çekirdeği kullanılır.
+export VLLM_USE_DEEP_GEMM=0
+# Aynı nedenle FlashInfer örnekleyicisi (nvcc ile JIT derler) yerine vLLM'nin PyTorch örnekleyicisi kullanılır.
+export VLLM_USE_FLASHINFER_SAMPLER=0
 
 IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')"
 echo "=========================================="

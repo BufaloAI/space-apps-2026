@@ -1,0 +1,13 @@
+[Unit]
+Description=Space Apps 2026 backend (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+WorkingDirectory=/home/nasko/Projeler/space-apps-2026
+ExecStart=/home/nasko/.local/bin/uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --workers 1
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
