@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 
 from ml.data_load import clean, download, features as F
+from ml.data_load import static as ST
 from ml.data_load.build import load_config
 from ml.model import risk as R
 from ml.model import rotation as ROT
@@ -37,6 +38,14 @@ Progress = Callable[[str, dict], None]
 
 def _noop(_stage: str, _info: dict) -> None:
     pass
+
+
+CONUS = (24.0, 50.0, -125.0, -66.0)  # CDL ve SSURGO yalnızca ABD (kıta) için
+_BG = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ml-static")  # beklenmeden sürebilir (sonuç önbelleğe)
+
+
+def in_conus(lat: float, lon: float) -> bool:
+    return CONUS[0] <= lat <= CONUS[1] and CONUS[2] <= lon <= CONUS[3]
 
 
 class DataUnavailable(RuntimeError):
@@ -55,16 +64,18 @@ class ParcelService:
         self.ndvi_timeout, self.ndvi_retries = ndvi_timeout, ndvi_retries
         self.power_timeout, self.power_retries = power_timeout, power_retries
         self.cache_days = cache_days
+        self.static_wait_s = 30.0  # NDVI bittikten sonra toprak/CDL için en fazla bu kadar daha beklenir
         self._lock = threading.Lock()
 
     # ------------------------------------------------------------ veri
-    def _cache_path(self, lat: float, lon: float, today: dt.date) -> Path:
-        return self.cache_dir / f"{lat:.3f}_{lon:.3f}_{today.isoformat()}"
+    def _cache_paths(self, lat: float, lon: float, today: dt.date) -> tuple[Path, Path]:
+        # Dikkat: Path.with_suffix kullanılmaz; koordinattaki nokta uzantı sanılıp boylam ve tarih silinirdi.
+        key = f"{lat:.3f}_{lon:.3f}_{today.isoformat()}"
+        return self.cache_dir / f"{key}.parquet", self.cache_dir / f"{key}.json"
 
     def fetch(self, lat: float, lon: float, today: dt.date, progress: Progress = _noop) -> tuple[pd.DataFrame, dict]:
         """Ham veri + kaynak durumu. Aynı gün aynı nokta için diskteki önbellekten okur."""
-        base = self._cache_path(lat, lon, today)
-        pq, meta = base.with_suffix(".parquet"), base.with_suffix(".json")
+        pq, meta = self._cache_paths(lat, lon, today)
         if pq.exists() and meta.exists():
             status = json.loads(meta.read_text())
             if status.get("ndvi", {}).get("ok") and status.get("weather", {}).get("ok"):
@@ -109,7 +120,7 @@ class ParcelService:
             raise DataUnavailable("İklim verisi (NASA POWER) alınamadı; analiz yapılamıyor.")
         raw = pd.concat(frames, ignore_index=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        tmp = pq.with_suffix(".tmp")
+        tmp = pq.parent / (pq.name + ".tmp")
         raw.to_parquet(tmp, index=False)
         tmp.replace(pq)
         meta.write_text(json.dumps(status))
@@ -117,13 +128,44 @@ class ParcelService:
         return raw, status
 
     def _prune_cache(self, today: dt.date) -> None:
-        for p in self.cache_dir.glob("*_*_*.*"):
+        for p in self.cache_dir.iterdir():
+            name = p.name.removesuffix(".tmp")
+            stem = name.rsplit(".", 1)[0] if name.endswith((".parquet", ".json")) else ""
             try:
-                d = dt.date.fromisoformat(p.stem.rsplit("_", 1)[1])
-            except ValueError:
+                d = dt.date.fromisoformat(stem.rsplit("_", 1)[1])
+            except (ValueError, IndexError):
+                p.unlink(missing_ok=True)  # eski/bozuk adlı dosya (tarihsiz): güvenli değil, sil
                 continue
             if (today - d).days > self.cache_days:
                 p.unlink(missing_ok=True)
+
+    def fetch_static(self, lat: float, lon: float, today: dt.date) -> dict:
+        """SSURGO toprak + CDL ürün geçmişi (yalnızca ABD). Günlük önbellekli. Hata -> boş sonuç."""
+        path = self.cache_dir / f"static_{lat:.3f}_{lon:.3f}_{today.isoformat()}.json"
+        if path.exists():
+            return json.loads(path.read_text())
+        out: dict = {"soil": None, "cdl": {}, "rotation": None, "errors": []}
+        if not in_conus(lat, lon):
+            out["errors"].append("ABD dışı: toprak (SSURGO) ve ürün geçmişi (CDL) yok")
+            return out
+        from ml.data_load import fields as FL  # noqa: PLC0415
+
+        cache = FL.default_cache()
+        try:
+            out["soil"] = FL.soil_at(lat, lon, cache)
+        except Exception as e:  # noqa: BLE001
+            out["errors"].append(f"toprak alınamadı: {str(e)[:120]}")
+        try:
+            hist = FL.cdl_history(lat, lon, range(today.year - 6, today.year), cache, workers=3)
+            out["cdl"] = {str(int(y)): (None if pd.isna(k) else str(k)) for y, k in zip(hist["year"], hist["crop_key"])}
+            out["rotation"] = FL.infer_rotation(hist)
+        except Exception as e:  # noqa: BLE001
+            out["errors"].append(f"ürün geçmişi alınamadı: {str(e)[:120]}")
+        cache.flush()
+        if out["soil"] is not None or any(v for v in out["cdl"].values()):
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(out, default=str))
+        return out
 
     def build_features(self, raw: pd.DataFrame) -> pd.DataFrame:
         dc = self.cfg.get("data", {})
@@ -140,9 +182,19 @@ class ParcelService:
                 priorities: dict | None = None, profile: dict | None = None,
                 progress: Progress = _noop) -> dict:
         today = today or dt.date.today()
+        static_fut = _BG.submit(self.fetch_static, lat, lon, today)  # NDVI beklenirken paralel
         raw, status = self.fetch(lat, lon, today, progress)
+        try:
+            stat = static_fut.result(timeout=self.static_wait_s)
+            progress("data", {"source": "soil_crop_history", "status": "done"})
+        except Exception:  # noqa: BLE001  (zaman aşımı: arka planda sürer, sonraki analizde önbellekten gelir)
+            stat = {"soil": None, "cdl": {}, "rotation": None, "errors": ["toprak/ürün geçmişi zamanında gelmedi"]}
+            progress("data", {"source": "soil_crop_history", "status": "failed"})
         progress("features", {"status": "started"})
         feats = self.build_features(raw)
+        cdl_hist = {int(y): k for y, k in stat.get("cdl", {}).items()}
+        feats, _srep = ST.add_static_features(feats, soil={AREA: stat["soil"]} if stat.get("soil") else None,
+                                              cdl={AREA: cdl_hist} if cdl_hist else None)
         missing = [c for c in self.model.features if c not in feats.columns]
         for c in missing:  # modelin bildiği ama bu kaynaklardan gelmeyen özellik -> NaN (XGBoost yönetir)
             feats[c] = np.nan
@@ -168,6 +220,18 @@ class ParcelService:
         else:
             warnings.append("NDVI (bitki örtüsü) verisi alınamadı; bitki tahmini yapılamadı, risk ve rotasyon "
                             "yalnızca iklim verisinden hesaplandı.")
+        warnings += [f"Not: {e}" for e in stat.get("errors", []) if not e.startswith("ABD dışı")]
+        profile = dict(profile or {})
+        soil = stat.get("soil") or {}
+        for k_src, k_dst in (("om_pct", "soil_om_pct"), ("slope_pct", "slope_pct"), ("soil_texture", "soil_texture")):
+            if soil.get(k_src) is not None and k_dst not in profile:
+                profile[k_dst] = soil[k_src]
+        rot_info = stat.get("rotation") or {}
+        existing_source = "çiftçi" if existing else None
+        if not existing and rot_info.get("rotation") and rot_info.get("confidence", 0) >= 0.5:
+            existing, existing_source = rot_info["rotation"], "USDA CDL"
+            warnings.append(f"Mevcut rotasyon USDA CDL ürün haritasından otomatik çıkarıldı: {existing} "
+                            f"(eminlik {rot_info['confidence']:.2f}); yanlışsa çiftçi düzeltmeli.")
         if missing:
             warnings.append(f"Modelin kullandığı {len(missing)} özellik bu parsel için yok (örn. {missing[0]}); "
                             "eminlik buna göre düşük olabilir.")
@@ -187,8 +251,8 @@ class ParcelService:
             srisk["confidence_level"] = R.confidence_level(srisk["confidence"])
         progress("rotations", {"status": "started"})
         cond = R.area_climate(feats)
-        state = {"cond": cond, "risk": srisk, "profile": profile or {}, "model_confidence": srisk["confidence"]}
-        rot = ROT.recommend(cond, existing, priorities, profile or {}, srisk,
+        state = {"cond": cond, "risk": srisk, "profile": profile, "model_confidence": srisk["confidence"]}
+        rot = ROT.recommend(cond, existing, priorities, profile, srisk,
                             model_confidence=srisk["confidence"], chosen=chosen)
         return {
             "as_of": today.isoformat(),
@@ -197,6 +261,8 @@ class ParcelService:
                            "ndvi": pred["ndvi_last_observed_week"] if pred else None},
             "forecast": pred, "risk": srisk, "area_conditions": cond, "rotations": rot,
             "warnings": warnings, "missing_features": missing,
+            "field_info": {"soil": soil or None, "crop_history": stat.get("cdl", {}),
+                           "inferred_rotation": rot_info or None, "existing_rotation_source": existing_source},
             "model_version": self.model.schema["model_version"],
             "synthetic_model": bool(self.model.schema.get("synthetic_input")),
             "rescore_state": state,

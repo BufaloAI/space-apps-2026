@@ -210,3 +210,24 @@ def test_local_obs_merge_and_calibration(trained, sample_paths, tmp_path):
     c = cal["il_champaign"]
     assert c["n"] == 8 and c["bias"] > 0 and c["mae_after"] <= c["mae_before"]
     (trained / "calibration.json").unlink()
+
+
+# ------------------------------------------------------------ statik (toprak + CDL)
+def test_static_features_no_leak():
+    from ml.data_load import static as S
+
+    weeks = pd.to_datetime(["2024-06-03", "2025-06-02"])
+    feat = pd.DataFrame({"area_id": ["a", "a"], "week": weeks})
+    cdl = {"a": {2021: "corn", 2022: "soybean", 2023: "corn", 2024: "soybean", 2025: "BANANA_THIS_YEAR"}}
+    soil = {"a": {"om_pct": 3.5, "clay_pct": 21, "sand_pct": 45, "awc_cm_cm": 0.21, "ph": 6.2, "ksat_um_s": 9.2,
+                  "slope_pct": 3, "hydgrp": "C/D", "drainagecl": "Well drained"}}
+    out, rep = S.add_static_features(feat, soil=soil, cdl=cdl)
+    r24, r25 = out.iloc[0], out.iloc[1]
+    # 2024 satırı: önceki yıl 2023 = mısır, 2 yıl önce soya -> dönüşüm sürüyor, beklenen soya
+    assert r24["crop_prev1"] == S.CROP_CODES["corn"] and r24["crop_expected"] == S.CROP_CODES["soybean"]
+    # 2025 satırı 2025'in kendi ürününü (BANANA_THIS_YEAR) asla görmez
+    assert r25["crop_prev1"] == S.CROP_CODES["soybean"] and r25["prev1_legume"] == 1.0
+    assert r24["soil_hydgrp"] == 3.5 and r24["soil_drainage"] == 3 and r24["soil_om_pct"] == 3.5
+    assert all(out[c].dtype == "float64" for c in out.columns if c.startswith(("soil_", "crop_", "prev1")))
+    out2, rep2 = S.add_static_features(pd.DataFrame({"area_id": ["b"], "week": weeks[:1]}), soil=soil, cdl=cdl)
+    assert np.isnan(out2["soil_om_pct"].iloc[0]) and rep2["missing_soil"] == ["b"]

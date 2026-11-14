@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import clean, features
+from . import clean, features, static
 
 log = logging.getLogger("ml.build")
 DEFAULT_CONFIG = Path(__file__).resolve().parents[1] / "config.toml"
@@ -40,7 +40,8 @@ def collect(raw: list[str]) -> list[Path]:
     return out
 
 
-def build(raw: list[str], out: str, areas: str | None = None, cfg: dict | None = None) -> dict:
+def build(raw: list[str], out: str, areas: str | None = None, cfg: dict | None = None,
+          static_dir: str | None = "ml/cache/static") -> dict:
     cfg = cfg or load_config()
     dc = cfg.get("data", {})
     paths = collect(raw)
@@ -55,6 +56,9 @@ def build(raw: list[str], out: str, areas: str | None = None, cfg: dict | None =
         weekly, centers, horizon_weeks=dc.get("horizon_weeks", 2), ndvi_lags=dc.get("ndvi_lags", 8),
         max_gap_weeks=dc.get("max_gap_weeks", 2),
     )
+    static_rep = None
+    if static_dir and Path(static_dir).exists():
+        feat, static_rep = static.add_static_features(feat, static_dir)
     outp = Path(out)
     outp.parent.mkdir(parents=True, exist_ok=True)
     tmp = outp.with_suffix(".tmp.parquet")
@@ -65,6 +69,7 @@ def build(raw: list[str], out: str, areas: str | None = None, cfg: dict | None =
         "inputs": [str(p) for p in paths],
         "synthetic": rep.synthetic,
         "clean": rep.to_dict(),
+        "static": static_rep,
         "areas": sorted(feat["area_id"].unique().tolist()),
         "weeks": [str(feat["week"].min().date()), str(feat["week"].max().date())],
         "rows": len(feat),
@@ -85,8 +90,9 @@ def main(argv=None):
     ap.add_argument("--areas")
     ap.add_argument("--out", default="ml/cache/features.parquet")
     ap.add_argument("--config")
+    ap.add_argument("--static", default="ml/cache/static", help="toprak/CDL klasörü ('' = kullanma)")
     a = ap.parse_args(argv)
-    rep = build(a.raw, a.out, a.areas, load_config(a.config))
+    rep = build(a.raw, a.out, a.areas, load_config(a.config), a.static or None)
     if rep["synthetic"]:
         print("UYARI: girdi SENTETİK veri içeriyor; sonuçlar yalnızca deneme amaçlıdır.")
     if rep["rows_with_observed_target"] == 0:

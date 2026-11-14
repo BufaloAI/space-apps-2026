@@ -23,3 +23,8 @@ ml/cache/
 ml/runs/
 *.parquet
 *.ubj
+
+# Earthdata kimlik/ayar dosyaları (ev klasöründe durur, repoya asla girmez)
+.dodsrc
+.netrc
+.urs_cookies

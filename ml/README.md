@@ -25,27 +25,45 @@ ml/
   tests/
 ```
 
-## Çalıştırma
+## Çalıştırma: tek komut (GPU'lu bilgisayarda)
 
 ```bash
-# 0) (deneme) sentetik örnek
-uv run python -m ml.data_load.sample
-# 1) gerçek veri indir (POWER + MODIS NDVI, auth gerekmez)
-uv run python -m ml.data_load.download --areas ml/data_load/areas.example.json \
-    --start 2024-01-01 --end 2025-12-31 --out ml/cache/raw --sources power,modis
-# 2) ML'e hazır tablo (nasa_pipeline CSV'si de verilebilir: --raw /yol/field_shift_optimized_features.csv)
-uv run python -m ml.data_load.build --raw ml/cache/raw --areas ml/data_load/areas.example.json \
-    --out ml/cache/features.parquet
-# 3) eğitim (GPU varsa otomatik CUDA)
-uv run python -m ml.model.train --features ml/cache/features.parquet [--local ml/local_obs.csv]
-# 4) alan analizi: tahmin + risk + rotasyon
-uv run python -m ml.model.analyze --features ml/cache/features.parquet --area iowa_ames \
-    --existing "corn>soybean" --priorities water=2,soil_health=1.5
-# 5) yerel ölçümlerle kalibrasyon (doğruluk ve güveni artırır)
-uv run python -m ml.model.analyze --calibrate --features ml/cache/features.parquet --local ml/local_obs.csv
-# testler
-uv run pytest ml/tests -q
+uv sync                                   # bağımlılıklar
+uv run python -m ml.run_all --check-only  # 1) yalnızca kontrol: GPU, Earthdata, API anahtarları, servisler, eldeki veri
+uv run python -m ml.run_all --max-fields 5 # 2) önce küçük deneme (5 tarla)
+uv run python -m ml.run_all               # 3) tam çalıştırma (saatler sürebilir; yarıda kalırsa tekrar çalıştırın)
 ```
+Sonunda `ml/cache/run_all_report.md`: her adımın sonucu, eksik veriler ve tamamlamak için komutlar.
+Adım günlükleri `ml/cache/logs/<adım>.log`. Tek adım: `--only appeears,build,train --force`.
+
+Gerekenler: `~/.netrc` içinde Earthdata girişi, `ml/.env` içinde `NASS_API_KEY` (zorunlu), `OPENET_API_KEY`
+(isteğe bağlı). `ml/.env` git'e girmez; diğer bilgisayara elle kopyalayın.
+
+| Adım | Kaynak | Çıktı |
+|---|---|---|
+| fields | USDA CDL (ürün geçmişi) + SSURGO (toprak); 132 aday noktadan gerçek tarlalar | `data_load/areas.us.json`, `cache/static/{cdl_history,soil}.parquet` |
+| power | NASA POWER günlük hava | `cache/raw/POWER.parquet` |
+| appeears | AppEEARS: MODIS NDVI (Terra+Aqua), LST, ET, SMAP toprak nemi, SRTM eğim | `cache/raw/*.parquet`, `cache/static/elevation.parquet` |
+| usda | NASS ilçe verimleri + fiyatlar, OpenET (batı eyaletleri) | `cache/static/nass_*.parquet`, `cache/raw/OPENET.parquet` |
+| build / train / verify | özellik tablosu, XGBoost, testler | `cache/features.parquet`, `runs/<zaman>/` |
+
+Adımlar tek tek de çalışır:
+
+```bash
+uv run python -m ml.data_load.fields select --out ml/data_load/areas.us.json --years 2015-2025
+uv run python -m ml.data_load.download --areas ml/data_load/areas.us.json --sources power --out ml/cache/raw
+uv run python -m ml.data_load.appeears --areas ml/data_load/areas.us.json --start 2024-01-01 --end 2025-12-31 \
+    --out ml/cache/raw --static-out ml/cache/static --products ndvi,ndvi_aqua,lst,et,smap,elev
+uv run python -m ml.data_load.usda --areas ml/data_load/areas.us.json --start 2024-01-01 --end 2025-12-31 \
+    --years 2015-2025 --static-out ml/cache/static --raw-out ml/cache/raw --what counties,yields,prices,openet
+uv run python -m ml.data_load.build --raw ml/cache/raw --areas ml/data_load/areas.us.json \
+    --out ml/cache/features.parquet --static ml/cache/static
+uv run python -m ml.model.train --features ml/cache/features.parquet
+uv run python -m ml.model.analyze --features ml/cache/features.parquet --area <area_id>
+uv run pytest -q
+```
+
+Sentetik deneme: `uv run python -m ml.data_load.sample` (yalnızca test).
 
 ## Çıktı tipi (XGBoost girdisi)
 `features.parquet`: bir satır bir alan-hafta (`area_id`, `week` = pazartesi). Bütün özellikler `float64`, eksik

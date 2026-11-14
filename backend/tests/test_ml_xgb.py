@@ -86,6 +86,14 @@ def client(monkeypatch, model_dir, fake_raw, tmp_path):
 
     monkeypatch.setattr(download, "fetch_power", fp)
     monkeypatch.setattr(download, "fetch_modis_ornl", fn)
+    from ml import service as S
+
+    static = {"soil": {"om_pct": 3.5, "clay_pct": 21, "sand_pct": 45, "slope_pct": 3, "hydgrp": "B",
+                       "drainagecl": "Well drained", "soil_texture": "loam"},
+              "cdl": {"2020": "corn", "2021": "soybean", "2022": "corn", "2023": "soybean", "2024": "corn",
+                      "2025": "soybean"},
+              "rotation": {"rotation": "corn>soybean", "confidence": 1.0}, "errors": []}
+    monkeypatch.setattr(S.ParcelService, "fetch_static", lambda self, lat, lon, today: static)  # ağa çıkma
     monkeypatch.setenv("VLLM_API_KEY", "test-key")
     monkeypatch.setenv("ML_PROVIDER", "xgboost")
     monkeypatch.setenv("ML_MODEL_DIR", str(model_dir))
@@ -188,3 +196,31 @@ def test_catalog_unavailable_with_fake_provider(monkeypatch):
 
     with TestClient(app) as c:
         assert c.get("/api/rotations/catalog").status_code == 503
+
+
+def test_cache_key_keeps_lon_and_date(tmp_path, model_dir):
+    import datetime as dt
+
+    from ml.service import ParcelService
+
+    svc = ParcelService(model_dir=model_dir, cache_dir=tmp_path)
+    a = svc._cache_paths(40.505, -88.985, dt.date(2026, 11, 14))[0]
+    b = svc._cache_paths(40.505, -88.105, dt.date(2026, 11, 14))[0]
+    c = svc._cache_paths(40.505, -88.985, dt.date(2026, 11, 15))[0]
+    assert a.name == "40.505_-88.985_2026-11-14.parquet"
+    assert len({a, b, c}) == 3  # farklı boylam ve farklı gün çakışmaz
+    for p in (a, tmp_path / "40.505_-88.parquet"):  # güncel dosya kalır, eski tarihsiz ad silinir
+        p.write_text("x")
+    svc._prune_cache(dt.date(2026, 11, 14))
+    assert a.exists() and not (tmp_path / "40.505_-88.parquet").exists()
+
+
+def test_existing_rotation_auto_from_cdl(client):
+    _, ev = start(client)  # çiftçi mevcut rotasyon vermedi -> CDL'den
+    done = next(e for e in ev if e.get("stage") == "ml" and e.get("status") == "done")
+    mevcut = next(lay for lay in done["layers"] if lay["name"] == "rotasyon_mevcut")
+    assert mevcut["details"]["key"] == "corn_soy"
+    meta = done["layers"][0]["details"]["_meta"]
+    assert meta["field_info"]["existing_rotation_source"] == "USDA CDL"
+    assert meta["field_info"]["soil"]["soil_texture"] == "loam"
+    assert any("CDL" in w for w in meta["warnings"])

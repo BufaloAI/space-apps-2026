@@ -228,7 +228,7 @@ class XGBoostMLProvider:
             layers[0] = Layer(**{**asdict(layers[0]), "details": {**(layers[0].details or {}), "_meta": json_safe({
                 "warnings": res["warnings"], "data_as_of": res["data_as_of"], "data_sources": res["data_sources"],
                 "model_version": res["model_version"], "information_gaps": res["rotations"]["information_gaps"],
-                "disclaimer": res["rotations"]["disclaimer"],
+                "disclaimer": res["rotations"]["disclaimer"], "field_info": res.get("field_info"),
             })}})
         self.last_state = {"parcel": parcel.centroid, "state": state}
         return layers

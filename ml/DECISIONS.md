@@ -62,3 +62,15 @@ Tarih: 2026-11-14. Kaynak talimat: `ml-bot-instructions.md`.
   çalıştırmak güvenli (`write_raw` birleştirip tekrarları atıyor). Çok sayıda alan için AppEEARS ya da earthaccess
   (MOD13Q1 HDF4, `pyhdf`/`rioxarray` gerekir) düşünülmeli.
 - POWER günleri yerel standart saatle (LST) veriyor; MODIS ve SMAP UTC. Haftalık birleştirmede bu fark önemsiz.
+
+## Ek kaynaklar (2026-11-14)
+- ORNL yerine/yanında **AppEEARS** (Earthdata girişi): sunucu tarafında nokta çıkarımı, yalnızca istenen tarla ve
+  tarihler iner. Terra + Aqua NDVI birlikte ~8 günde bir gözlem verir.
+- **CDL** ürün geçmişi ve **SSURGO** toprak: sabit özellik. Sızıntı kuralı: bir yılın CDL ürünü ertesi yıl
+  yayınlandığı için yalnızca önceki yılların ürünleri ve onlardan çıkan "beklenen ürün" kullanılır.
+  Backend'de ABD parselinde mevcut rotasyon girilmezse CDL'den çıkarılır (eminlik >= 0.5) ve uyarı gösterilir.
+- **NASS** ilçe verimleri ve fiyatları, **OpenET** (yalnızca batı eyaletleri) eklendi.
+- Atlananlar: GPM/PRISM/NLDAS (POWER ile örtüşüyor), NAIP (çok büyük), NLCD (CDL yeterli), GEDI, LANDFIRE,
+  GAEZ, CoCoRaHS, NWIS (rotasyon kararına katkısı düşük), ERA5 (CDS anahtarı yok, POWER benzeri), AMS (NASS fiyatı
+  yeterli; anahtar yok).
+- CDL web sayfasının SSL zinciri bozuk; veri servisi (axis2) sağlam ama zaman zaman 60 sn+ yanıt vermiyor.

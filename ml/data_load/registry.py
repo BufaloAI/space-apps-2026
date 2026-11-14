@@ -57,6 +57,12 @@ _SPECS: dict[str, VarSpec] = {
     "sm_rootzone": VarSpec("sm_rootzone", fills=(-9999.0,), valid=(0, 1), unit="m³/m³"),
     "sm_profile": VarSpec("sm_profile", fills=(-9999.0,), valid=(0, 1), unit="m³/m³"),
     "surface_temp": VarSpec("smap_tsurf_c", offset=-273.15, fills=(-9999.0,), valid=(-80, 80), unit="°C"),
+    # --- AppEEARS MOD16A2GF ET (8 günlük toplam, mm) -> günlük ortalama. Dolgu (32761+)*0.1 ölçekli.
+    "modis_et_8day_mm": VarSpec("modis_et_mm", scale=1 / 8, fills=(3276.7, 3276.6, 3276.5, 3276.4, 3276.3, 3276.2,
+                                                                     3276.1, 32767.0), valid_raw=(0, 300),
+                                agg="sum", unit="mm"),
+    # --- OpenET (aylık toplam, mm) -> günlük ortalama (ay ~30.44 gün)
+    "openet_et_month_mm": VarSpec("openet_et_mm", scale=1 / 30.44, valid_raw=(0, 500), agg="sum", unit="mm"),
     # --- GPM IMERG günlük (GPM_3IMERGDF). mm/gün, dolgu -9999.9.
     "precipitation": VarSpec("precip_mm", fills=(-9999.9,), valid=(0, 2000), agg="sum", unit="mm"),
 }

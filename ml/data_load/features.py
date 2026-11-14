@@ -13,9 +13,9 @@ import pandas as pd
 from . import registry as reg
 
 # 16 günlük kompozitlerin tarihi dönem başlangıcıdır; değeri dönemin ortasına taşırız.
-COMPOSITE_SHIFT_DAYS = {"ndvi": 8, "evi": 8}
+COMPOSITE_SHIFT_DAYS = {"ndvi": 8, "evi": 8, "modis_et_mm": 4, "openet_et_mm": 15}
 MINMAX_VARS = {"t2m_c", "tmax_c", "tmin_c", "sm_surface", "sm_rootzone", "gwet_top", "gwet_root", "lst_day_c"}
-SUM_VARS = {"precip_mm", "et_mm", "gdd", "heat_day", "frost_day", "dry_day"}
+SUM_VARS = {"precip_mm", "et_mm", "modis_et_mm", "openet_et_mm", "gdd", "heat_day", "frost_day", "dry_day"}
 SCHEMA_VERSION = 1
 
 
