@@ -17,3 +17,9 @@ __pycache__/
 # Frontend
 node_modules/
 dist/
+
+# ML: veri önbelleği, ham indirmeler, model çıktıları (büyük, git'e girmez)
+ml/cache/
+ml/runs/
+*.parquet
+*.ubj

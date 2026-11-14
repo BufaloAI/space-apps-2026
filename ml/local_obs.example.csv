@@ -1,0 +1,8 @@
+area_id,date,variable,value,note
+ia_story,,irrigation,0,ÖRNEK DEĞER - gerçek ölçüm değil
+ia_story,,soil_om_pct,3.5,ÖRNEK DEĞER - gerçek ölçüm değil
+ia_story,,soil_texture,silt_loam,ÖRNEK DEĞER - gerçek ölçüm değil
+ia_story,,slope_pct,2,ÖRNEK DEĞER - gerçek ölçüm değil
+ia_story,,existing_rotation,corn>soybean,ÖRNEK DEĞER - gerçek ölçüm değil
+ia_story,2025-07-14,ndvi,0.80,ÖRNEK DEĞER - saha/dron NDVI ölçümü buraya
+ia_story,2025-08-11,ndvi,0.74,ÖRNEK DEĞER - saha/dron NDVI ölçümü buraya

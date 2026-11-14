@@ -1,0 +1,44 @@
+# ML katmanı ayarları (ml/data_load + ml/model)
+
+[data]
+start = "2024-01-01"
+end = "2025-12-31"
+hours = [0, 6, 12, 18]      # alt-günlük üründen yalnızca bu UTC saatlerine en yakın örnekler
+hour_tolerance_h = 1.5      # SMAP 01:30/07:30/... örnekleri 0/6/12/18'e düşsün
+grid_deg = 0.25             # alan dosyası yoksa noktalar bu ızgaraya bölünür
+horizon_weeks = 2           # hedef: 2 hafta sonraki NDVI (MOD13Q1 16 günlük)
+ndvi_lags = 8
+max_gap_weeks = 2           # en fazla 2 haftalık iç boşluk doğrusal doldurulur
+
+[prune]
+col_missing_max = 0.5       # eğitimde yarıdan fazlası boş sütun atılır
+row_missing_max = 0.5       # özelliklerinin yarıdan fazlası boş satır atılır
+corr_max = 0.95             # |r| bundan büyük çiftlerden biri atılır
+near_dup_bins = 50          # neredeyse aynı satır: std/50 adımla nicemleyip tekilleştir
+
+[split]
+# zamansal bölme: eğitim < valid_start <= doğrulama < test_start <= test
+valid_start = "2025-04-01"
+test_start = "2025-07-01"
+area_folds = 3              # alan bazlı (GroupKFold benzeri) ek değerlendirme
+
+[model]
+device = "auto"             # auto | cuda | cpu
+target_mode = "delta"       # delta: model (2 hafta sonraki NDVI - bugünkü NDVI) öğrenir | absolute
+num_boost_round = 3000
+early_stopping_rounds = 100
+quantiles = [0.1, 0.5, 0.9]
+local_weight = 3.0          # yerel (çiftçi/saha) gözlemlerinin eğitimdeki ağırlığı
+
+[model.params]
+tree_method = "hist"
+objective = "reg:squarederror"
+eval_metric = ["rmse", "mae"]
+max_depth = 6
+eta = 0.05
+subsample = 0.8
+colsample_bytree = 0.8
+min_child_weight = 5
+reg_lambda = 1.0
+max_bin = 256
+seed = 123

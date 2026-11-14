@@ -1,0 +1,227 @@
+# Ürün ve rotasyon profilleri.
+# UYARI: Değerler genel agronomik sezgilerdir (0-1 göreli ölçek, ABD Ortabatı ağırlıklı), ölçüm DEĞİLDİR.
+# Yerel uzman/çiftçi tarafından gözden geçirilmeli; yerel veriyle (local_obs) değiştirilebilir.
+# water_need: su ihtiyacı | drought_tol / heat_tol / frost_tol: kuraklık / sıcak / don dayanımı
+# gdd_need: mevsimlik büyüme derece günü ihtiyacı (taban 10 °C, yaklaşık) | n_fix: azot bağlar
+# residue_cover: toprak örtüsü/erozyon koruması | om: organik maddeye katkı | market: genel pazar değeri
+# forage: yem değeri | season: warm (yazlık) / cool (kışlık) / perennial (çok yıllık) / none
+
+[crops.corn]
+name = "Mısır"
+family = "poaceae"
+season = "warm"
+water_need = 0.80
+drought_tol = 0.30
+heat_tol = 0.50
+frost_tol = 0.10
+gdd_need = 1400
+n_fix = false
+residue_cover = 0.60
+om = 0.60
+market = 0.90
+forage = 0.50
+
+[crops.soybean]
+name = "Soya"
+family = "fabaceae"
+season = "warm"
+water_need = 0.60
+drought_tol = 0.40
+heat_tol = 0.50
+frost_tol = 0.10
+gdd_need = 1300
+n_fix = true
+residue_cover = 0.30
+om = 0.30
+market = 0.85
+forage = 0.20
+
+[crops.winter_wheat]
+name = "Kışlık buğday"
+family = "poaceae"
+season = "cool"
+water_need = 0.45
+drought_tol = 0.60
+heat_tol = 0.40
+frost_tol = 0.80
+gdd_need = 1000
+n_fix = false
+residue_cover = 0.70
+om = 0.50
+market = 0.70
+forage = 0.40
+
+[crops.sorghum]
+name = "Sorgum"
+family = "poaceae"
+season = "warm"
+water_need = 0.40
+drought_tol = 0.85
+heat_tol = 0.85
+frost_tol = 0.10
+gdd_need = 1450
+n_fix = false
+residue_cover = 0.60
+om = 0.60
+market = 0.55
+forage = 0.70
+
+[crops.cotton]
+name = "Pamuk"
+family = "malvaceae"
+season = "warm"
+water_need = 0.65
+drought_tol = 0.60
+heat_tol = 0.85
+frost_tol = 0.05
+gdd_need = 2000
+n_fix = false
+residue_cover = 0.20
+om = 0.20
+market = 0.70
+forage = 0.00
+
+[crops.sunflower]
+name = "Ayçiçeği"
+family = "asteraceae"
+season = "warm"
+water_need = 0.45
+drought_tol = 0.75
+heat_tol = 0.75
+frost_tol = 0.20
+gdd_need = 1200
+n_fix = false
+residue_cover = 0.30
+om = 0.30
+market = 0.50
+forage = 0.20
+
+[crops.chickpea]
+name = "Nohut"
+family = "fabaceae"
+season = "cool"
+water_need = 0.35
+drought_tol = 0.80
+heat_tol = 0.55
+frost_tol = 0.50
+gdd_need = 1000
+n_fix = true
+residue_cover = 0.25
+om = 0.30
+market = 0.55
+forage = 0.20
+
+[crops.alfalfa]
+name = "Yonca"
+family = "fabaceae"
+season = "perennial"
+water_need = 0.85
+drought_tol = 0.60
+heat_tol = 0.60
+frost_tol = 0.70
+gdd_need = 800
+n_fix = true
+residue_cover = 0.90
+om = 0.80
+market = 0.60
+forage = 1.00
+
+[crops.cereal_rye]
+name = "Çavdar (örtü bitkisi)"
+family = "poaceae"
+season = "cool"
+cover_crop = true
+water_need = 0.25
+drought_tol = 0.70
+heat_tol = 0.30
+frost_tol = 0.95
+gdd_need = 400
+n_fix = false
+residue_cover = 0.90
+om = 0.70
+market = 0.20
+forage = 0.60
+
+[crops.hairy_vetch]
+name = "Tüylü fiğ (örtü bitkisi)"
+family = "fabaceae"
+season = "cool"
+cover_crop = true
+water_need = 0.30
+drought_tol = 0.50
+heat_tol = 0.30
+frost_tol = 0.80
+gdd_need = 400
+n_fix = true
+residue_cover = 0.75
+om = 0.60
+market = 0.10
+forage = 0.60
+
+[crops.fallow]
+name = "Nadas"
+family = "none"
+season = "none"
+water_need = 0.0
+drought_tol = 1.0
+heat_tol = 1.0
+frost_tol = 1.0
+gdd_need = 0
+n_fix = false
+residue_cover = 0.10
+om = 0.05
+market = 0.0
+forage = 0.0
+
+# Rotasyonlar: her eleman bir sezon; "ana+örtü" yazımıyla örtü bitkisi eklenir.
+[rotations.corn_corn]
+name = "Sürekli mısır (monokültür)"
+seq = ["corn"]
+
+[rotations.corn_soy]
+name = "Mısır → Soya"
+seq = ["corn", "soybean"]
+
+[rotations.corn_soy_rye]
+name = "Mısır → Soya + çavdar örtü bitkisi"
+seq = ["corn+cereal_rye", "soybean+cereal_rye"]
+
+[rotations.corn_soy_wheat_vetch]
+name = "Mısır → Soya → Buğday + fiğ"
+seq = ["corn", "soybean", "winter_wheat+hairy_vetch"]
+
+[rotations.sorghum_soy_wheat]
+name = "Sorgum → Soya → Buğday"
+seq = ["sorghum", "soybean", "winter_wheat"]
+
+[rotations.wheat_sorghum_fallow]
+name = "Buğday → Sorgum → Nadas"
+seq = ["winter_wheat", "sorghum", "fallow"]
+
+[rotations.wheat_fallow]
+name = "Buğday → Nadas"
+seq = ["winter_wheat", "fallow"]
+
+[rotations.wheat_chickpea]
+name = "Buğday → Nohut"
+seq = ["winter_wheat", "chickpea"]
+
+[rotations.sunflower_wheat]
+name = "Ayçiçeği → Buğday"
+seq = ["sunflower", "winter_wheat"]
+
+[rotations.alfalfa_corn]
+name = "Yonca (3 yıl) → Mısır (2 yıl)"
+seq = ["alfalfa", "alfalfa", "alfalfa", "corn", "corn"]
+
+[rotations.cotton_corn]
+name = "Pamuk → Mısır"
+seq = ["cotton", "corn"]
+
+[rotations.cotton_rye]
+name = "Pamuk + çavdar örtü bitkisi"
+seq = ["cotton+cereal_rye"]
+
+[rotations.cotton_soy_wheat]
+name = "Pamuk → Soya → Buğday"
+seq = ["cotton", "soybean", "winter_wheat"]
