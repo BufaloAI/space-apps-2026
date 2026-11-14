@@ -40,12 +40,17 @@ def _phi(z):
     return 0.5 * (1 + math.erf(z / math.sqrt(2)))
 
 
-def short_term_risk(row: pd.Series, pred: dict, clim: pd.DataFrame | None, ref: pd.Series | None,
-                    coverage: float = 1.0) -> dict:
-    """Bir alan-hafta için risk bileşenleri + genel skor + güven."""
-    p10, p50, p90 = pred["ndvi_p10"], pred["ndvi_p50"], pred["ndvi_p90"]
-    sigma = max(1e-3, (p90 - p10) / (2 * Z90))
-    target_week = pd.Timestamp(row["week"]) + pd.Timedelta(weeks=int(pred["horizon_weeks"]))
+def short_term_risk(row: pd.Series, pred: dict | None, clim: pd.DataFrame | None, ref: pd.Series | None,
+                    coverage: float = 1.0, horizon_weeks: int = 2) -> dict:
+    """Bir alan-hafta için risk bileşenleri + genel skor + güven. `pred` yoksa (NDVI alınamadı)
+    bitki stresi hesaplanmaz, diğer bileşenler iklim verisinden hesaplanır."""
+    if pred is not None:
+        p10, p50, p90 = pred["ndvi_p10"], pred["ndvi_p50"], pred["ndvi_p90"]
+        horizon_weeks = int(pred["horizon_weeks"])
+    else:
+        p10 = p50 = p90 = float("nan")
+    sigma = max(1e-3, (p90 - p10) / (2 * Z90)) if pred is not None else 1.0
+    target_week = pd.Timestamp(row["week"]) + pd.Timedelta(weeks=horizon_weeks)
     woy = int(target_week.isocalendar().week)
     normal = np.nan
     if clim is not None and len(clim):
@@ -55,7 +60,7 @@ def short_term_risk(row: pd.Series, pred: dict, clim: pd.DataFrame | None, ref: 
     now = _get(row, "ndvi")
     # bitki stresi: tahmini NDVI'nın "normal - 0.1"in (normal yoksa bugünkü - 0.1) altına düşme olasılığı
     thr = (normal if np.isfinite(normal) else now) - 0.10
-    veg = _phi((thr - p50) / sigma) if np.isfinite(thr) else float("nan")
+    veg = _phi((thr - p50) / sigma) if (np.isfinite(thr) and np.isfinite(p50)) else float("nan")
 
     # su stresi: son 4 hafta yağışı alanın tipik değerine göre + toprak nemi anomalisi
     parts = []
@@ -81,7 +86,8 @@ def short_term_risk(row: pd.Series, pred: dict, clim: pd.DataFrame | None, ref: 
     overall = sum(weights[k] * v for k, v in avail.items()) / sum(weights[k] for k in avail) if avail else float("nan")
 
     # güven: tahmin aralığı darlığı + veri kapsamı + bileşen bulunurluğu + yerel kalibrasyon
-    width_score = _clip01(1 - (p90 - p10) / 0.30)
+    width_score = _clip01(1 - (p90 - p10) / 0.30) if pred is not None else 0.0
+    pred = pred or {}
     n_local = pred.get("n_local_obs", 0)
     conf = (0.45 * width_score + 0.30 * _clip01(coverage) + 0.15 * len(avail) / len(comps)
             + 0.10 * n_local / (n_local + 5))
@@ -104,7 +110,8 @@ def area_climate(area_feats: pd.DataFrame) -> dict:
     d = area_feats.copy()
     d["month"] = d["week"].dt.month
     summer = d[d["month"].between(5, 9)]
-    years = d["year"].unique()
+    cnt = d.groupby("year").size()
+    years = cnt[cnt >= 26].index  # yarım yılı (örn. 1 haftalık Aralık başı) yıl sayma
     out = {"years": sorted(int(y) for y in years), "n_weeks": int(len(d))}
 
     def yearly(col, frame, how="sum"):
@@ -114,9 +121,14 @@ def area_climate(area_feats: pd.DataFrame) -> dict:
         return float((g.sum(min_count=1) if how == "sum" else g.max()).mean())
 
     out["summer_precip_mm"] = yearly("precip_mm", summer)
+    if "precip_mm" in summer and summer["precip_mm"].notna().any():  # yıllar arası en kurak / en yağışlı yaz
+        full = summer.groupby("year")["precip_mm"].agg(["sum", "count"])
+        full = full[full["count"] >= 18]["sum"]  # mayıs-eylülün çoğu gözlenmiş yıllar
+        if len(full):
+            out["summer_precip_min_mm"], out["summer_precip_max_mm"] = float(full.min()), float(full.max())
     out["annual_gdd"] = yearly("gdd_ytd", d, how="max") if "gdd_ytd" in d else yearly("gdd", d)
     out["summer_heat_days"] = yearly("heat_day", summer)
-    spring = d[d["month"].between(4, 5)]
+    spring = d[d["month"].between(5, 6)]  # ekimden sonraki geç donlar (nisan donları ekimden önce, zarar vermez)
     out["spring_frost_days"] = yearly("frost_day", spring)
     out["winter_min_c"] = float(d.loc[d["month"].isin([12, 1, 2]), "tmin_c_min"].min()) \
         if "tmin_c_min" in d else float("nan")
@@ -134,7 +146,9 @@ def area_climate(area_feats: pd.DataFrame) -> dict:
         ws.append(_clip01((hi - out["summer_soil_moisture"]) / (hi - lo)))
     out["water_stress"] = float(np.mean(ws)) if ws else float("nan")
     out["heat_stress"] = _clip01(out["summer_heat_days"] / 30) if np.isfinite(out["summer_heat_days"]) else float("nan")
-    out["frost_stress"] = _clip01(out["spring_frost_days"] / 10) if np.isfinite(out["spring_frost_days"]) else float("nan")
+    out["frost_stress"] = _clip01(out["spring_frost_days"] / 5) if np.isfinite(out["spring_frost_days"]) else float("nan")
+    out["wetness"] = _clip01((out["summer_precip_mm"] - 400) / 300) if np.isfinite(out["summer_precip_mm"]) \
+        else float("nan")
     out["erosion_pressure"] = _clip01((out["p95_daily_precip_mm"] - 10) / 30) \
         if np.isfinite(out["p95_daily_precip_mm"]) else float("nan")
     return out

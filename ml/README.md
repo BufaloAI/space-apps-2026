@@ -20,6 +20,7 @@ ml/
     rotation.py         # rotasyon puanlama/sıralama (crops.toml)
     local.py            # yerel veri: eğitime ekleme, kalibrasyon, tarla profili
     analyze.py          # alan için uçtan uca sonuç + backend Layer biçimi
+  service.py            # backend'in çağırdığı parsel servisi: güncel veri -> tahmin -> risk -> rotasyon
   local_obs.example.csv # yerel veri biçimi (ÖRNEK değerler)
   tests/
 ```
@@ -50,3 +51,17 @@ uv run pytest ml/tests -q
 `features.parquet`: bir satır bir alan-hafta (`area_id`, `week` = pazartesi). Bütün özellikler `float64`, eksik
 değerler `NaN` (dolgu değerleri temizlendi). `target_ndvi` 2 hafta sonraki NDVI, `target_observed` hedefin gerçekten
 gözlenip gözlenmediği. `_` ile başlayan sütunlar (kapsam) ve `target*` özellik değildir (`features.feature_columns`).
+
+## Backend'de kullanma
+
+`backend/.env` içinde `ML_PROVIDER=xgboost`. Backend `ml/runs/LATEST`'in gösterdiği modeli yükler
+(ya da `ML_MODEL_DIR=/yol/ml/runs/<zaman>`). Diğer bilgisayarda eğitilen modeli taşımak için:
+
+```bash
+# GPU'lu bilgisayarda: eğitimden sonra
+scp -r ml/runs/<zaman> <bu-pc>:~/Projeler/space-apps-2026/ml/runs/
+# bu bilgisayarda
+realpath ml/runs/<zaman> > ml/runs/LATEST
+systemctl --user restart space-backend
+```
+Tahmin CPU'da tarla başına milisaniyeler sürer; GPU gerekmez. Asıl süre veri çekmektir (NDVI 30 sn–2 dk).

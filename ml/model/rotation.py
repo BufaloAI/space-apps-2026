@@ -59,9 +59,14 @@ def crop_fit(crop: dict, cond: dict, irrigated: bool) -> tuple[float, list[str]]
     ws = _nz(cond.get("water_stress"), 0.3) * (0.4 if irrigated else 1.0)
     hs, fs = _nz(cond.get("heat_stress"), 0.2), _nz(cond.get("frost_stress"), 0.2)
     pen_w = ws * crop["water_need"] * (1 - crop["drought_tol"])
-    pen_h = hs * (1 - crop["heat_tol"])
+    heat_w = 0.5 if crop["season"] == "cool" else 1.0  # kışlıklar yaz sıcağından önce hasat edilir
+    pen_h = hs * (1 - crop["heat_tol"]) * heat_w
     frost_weight = 1.0 if crop["season"] in ("warm",) else 0.4
     pen_f = fs * (1 - crop["frost_tol"]) * frost_weight
+    wet = _nz(cond.get("wetness"), 0.0)
+    pen_wet = wet * (1 - crop.get("wet_tol", 0.8)) * 0.6
+    if pen_wet > 0.15:
+        notes.append(f"{crop['name']}: yağışlı/nemli yazda hastalık riski yüksek")
     gdd = cond.get("annual_gdd")
     pen_g = 0.0
     if crop.get("gdd_need") and gdd is not None and np.isfinite(gdd) and crop["season"] == "warm":
@@ -75,7 +80,92 @@ def crop_fit(crop: dict, cond: dict, irrigated: bool) -> tuple[float, list[str]]
         notes.append(f"{crop['name']}: sıcak stresine duyarlı")
     if pen_f > 0.15:
         notes.append(f"{crop['name']}: ilkbahar donuna duyarlı")
-    return float(np.clip(1 - pen_w - pen_h - pen_f - pen_g, 0, 1)), notes
+    if crop["family"] == "none":  # nadas yalnızca kurak yerde su biriktirmek için anlamlı
+        pen_fallow = 0.6 * (1 - _nz(cond.get("water_stress"), 0.3))
+        if pen_fallow > 0.3:
+            notes.append("Nadas: bu alan kurak değil; nadas su kazandırmaz, gelir ve toprak kaybettirir")
+        return float(np.clip(1 - pen_fallow, 0, 1)), notes
+    return float(np.clip(1 - pen_w - pen_h - pen_f - pen_g - pen_wet, 0, 1)), notes
+
+
+# Şiddetli stres altında en fazla verim kaybı (kesir). SEZGİSEL üst sınırlar, ölçüm değil.
+MAX_LOSS = {"drought": 0.60, "heat": 0.40, "frost": 0.50, "gdd": 0.50, "wet": 0.50}
+RISK_LABELS = {"drought": "kuraklık / su stresi", "heat": "sıcak stresi", "frost": "ilkbahar donu",
+               "gdd": "yetersiz sıcaklık birikimi (GDD)", "wet": "aşırı nem / hastalık"}
+
+
+def _sev(x: float) -> str:
+    return "yüksek" if x >= 0.20 else "orta" if x >= 0.08 else "düşük"
+
+
+def crop_losses(crop: dict, cond: dict, irrigated: bool) -> dict[str, float]:
+    """Ürün için risk başına beklenen verim kaybı (0..1, merkez tahmin)."""
+    if crop["family"] == "none":
+        return {}
+    ws = _nz(cond.get("water_stress"), 0.3) * (0.4 if irrigated else 1.0)
+    hs, fs = _nz(cond.get("heat_stress"), 0.2), _nz(cond.get("frost_stress"), 0.2)
+    out = {
+        "drought": MAX_LOSS["drought"] * ws * crop["water_need"] * (1 - crop["drought_tol"]),
+        "heat": MAX_LOSS["heat"] * hs * (1 - crop["heat_tol"]) * (0.5 if crop["season"] == "cool" else 1.0),
+        "frost": MAX_LOSS["frost"] * fs * (1 - crop["frost_tol"]) * (1.0 if crop["season"] == "warm" else 0.4),
+        "wet": MAX_LOSS["wet"] * _nz(cond.get("wetness"), 0.0) * (1 - crop.get("wet_tol", 0.8)),
+    }
+    gdd = cond.get("annual_gdd")
+    if crop.get("gdd_need") and gdd is not None and np.isfinite(gdd) and crop["season"] == "warm":
+        out["gdd"] = MAX_LOSS["gdd"] * min(1.0, max(0.0, (1 - gdd / crop["gdd_need"]) * 2))
+    return {k: float(v) for k, v in out.items()}
+
+
+def rotation_damages(seq: list[str], cond: dict, profile: dict, repeated: bool) -> tuple[list[dict], dict]:
+    """Risklerin olası zararları: ürün bazlı verim kaybı aralığı + toprak/zararlı/azot zararları."""
+    cat = catalog()["crops"]
+    irrigated = bool(_nz(profile.get("irrigation"), 0))
+    dmg: list[dict] = []
+    per_crop = {}
+    for s in dict.fromkeys(x.split("+")[0] for x in seq):
+        c = cat[s]
+        losses = crop_losses(c, cond, irrigated)
+        if not losses:
+            continue
+        total = 1 - float(np.prod([1 - v for v in losses.values()]))
+        per_crop[c["name"]] = [round(100 * total * 0.5, 1), round(100 * min(0.9, total * 1.5), 1)]
+        for k, v in sorted(losses.items(), key=lambda kv: -kv[1]):
+            if v < 0.03:
+                continue
+            dmg.append({
+                "risk": RISK_LABELS[k], "affects": c["name"], "severity": _sev(v),
+                "yield_loss_pct": [round(100 * v * 0.5, 1), round(100 * min(0.9, v * 1.5), 1)],
+                "impact": {
+                    "drought": "çiçeklenme/dane dolumu döneminde su eksikliği verimi ve kaliteyi düşürür",
+                    "heat": "yüksek sıcaklık tozlanmayı ve dane dolumunu bozar",
+                    "frost": "erken ekimde fide kaybı, yeniden ekim maliyeti",
+                    "gdd": "ürün mevsim sonunda olgunlaşmayabilir; hasat nemi ve kurutma maliyeti artar",
+                    "wet": "yağışlı ve nemli yazda mantar hastalıkları (örn. antraknoz) yayılır, ilaç maliyeti artar",
+                }[k],
+            })
+    ep = _nz(cond.get("erosion_pressure"), 0.3) * (1 + min(1.0, _nz(profile.get("slope_pct"), 0) / 8))
+    bare = [i + 1 for i, x in enumerate(seq) if max(cat[c]["residue_cover"] for c in x.split("+")) < 0.35]
+    if bare and ep > 0.2:
+        dmg.append({"risk": "erozyon", "affects": "toprak", "severity": _sev(0.25 * ep),
+                    "yield_loss_pct": None,
+                    "impact": f"{', '.join(map(str, bare))}. sezonda toprak örtüsü zayıf; yoğun yağışta üst toprak "
+                              "ve besin kaybı, uzun vadede verim düşüşü"})
+    if repeated:
+        dmg.append({"risk": "zararlı/hastalık birikimi", "affects": "tüm rotasyon", "severity": "orta",
+                    "yield_loss_pct": [5.0, 15.0],
+                    "impact": "aynı ürün ailesi art arda ekilince zararlı ve hastalık baskısı artar; ilaç maliyeti "
+                              "yükselir (aralık genel bir sezgidir)"})
+    mains = [cat[x.split("+")[0]] for x in seq]
+    covers = [cat[c] for x in seq for c in x.split("+")[1:]]
+    if not any(c["n_fix"] for c in mains + covers) and np.mean([c.get("n_need", 0.5) for c in mains]) >= 0.6:
+        dmg.append({"risk": "azot açığı", "affects": "toprak", "severity": "orta", "yield_loss_pct": None,
+                    "impact": "baklagil yok, azot ihtiyacı yüksek: gübre maliyeti ve azot yıkanması (su kirliliği) riski"})
+    if any(c["family"] == "none" for c in mains):
+        dmg.append({"risk": "organik madde kaybı", "affects": "toprak", "severity": "orta", "yield_loss_pct": None,
+                    "impact": "nadas yılında toprak çıplak kalır; organik madde ve toprak yapısı zayıflar, gelir olmaz"})
+    order = {"yüksek": 0, "orta": 1, "düşük": 2}
+    dmg.sort(key=lambda d: order[d["severity"]])
+    return dmg, per_crop
 
 
 def score_rotation(key: str, name: str, seq: list[str], cond: dict, priorities: dict, profile: dict,
@@ -142,6 +232,7 @@ def score_rotation(key: str, name: str, seq: list[str], cond: dict, priorities: 
         risks.append("nadas döneminde toprak çıplak kalır: erozyon ve organik madde kaybı")
     if has_cover:
         risks.append("örtü bitkisi kuru yıllarda ana ürünün suyunu azaltabilir; sonlandırma zamanı yerel karar")
+    damages, crop_loss = rotation_damages(seq, cond, profile, repeated)
     evidence = {k: (round(v, 3) if isinstance(v, float) and np.isfinite(v) else v)
                 for k, v in cond.items() if k in ("summer_precip_mm", "annual_gdd", "summer_heat_days",
                                                     "spring_frost_days", "summer_soil_moisture",
@@ -153,12 +244,14 @@ def score_rotation(key: str, name: str, seq: list[str], cond: dict, priorities: 
         "score": round(float(total), 3), "risk": round(risk, 3), "climate_fit": round(climate_fit, 3),
         "components": {k: round(v, 3) for k, v in comps.items()},
         "why": why, "benefits": benefits, "risks_for_local_review": risks, "evidence": evidence,
+        "damages": damages, "expected_yield_loss_pct": crop_loss,
     }
 
 
 def recommend(cond: dict, existing: str | list[str] | None = None, priorities: dict | None = None,
               profile: dict | None = None, short_risk: dict | None = None, top_n: int = 3,
-              model_confidence: float = 0.5) -> dict:
+              model_confidence: float = 0.5, chosen: str | list[str] | None = None) -> dict:
+    """Önerir. `existing` = çiftçinin şu anki rotasyonu, `chosen` = çiftçinin değerlendirmek istediği kendi seçimi."""
     cat = catalog()
     profile = profile or {}
     if existing is None and isinstance(profile.get("existing_rotation"), str):
@@ -171,15 +264,24 @@ def recommend(cond: dict, existing: str | list[str] | None = None, priorities: d
         if existing_key is None:
             existing_key = "existing"
             cands[existing_key] = ("Mevcut rotasyon", seq)
+    chosen_key = None
+    if chosen:
+        cseq = parse_rotation(chosen)
+        chosen_key = next((k for k, (_, s) in cands.items() if canonical(s) == canonical(cseq)), None)
+        if chosen_key is None:
+            chosen_key = "chosen"
+            cands[chosen_key] = ("Çiftçinin seçtiği rotasyon", cseq)
     scored = [score_rotation(k, n, s, cond, priorities or {}, profile, short_risk) for k, (n, s) in cands.items()]
     scored.sort(key=lambda r: -r["score"])
     for i, r in enumerate(scored, 1):
         r["rank"] = i
         r["is_existing"] = r["key"] == existing_key
+        r["is_chosen"] = r["key"] == chosen_key
     picks = [r for r in scored if not r["is_existing"]][:top_n]
     ex = next((r for r in scored if r["is_existing"]), None)
+    ch = next((r for r in scored if r["is_chosen"]), None)
     if ex:
-        for r in picks:
+        for r in [*picks, *([ch] if ch else [])]:
             r["delta_vs_existing"] = {"score": round(r["score"] - ex["score"], 3),
                                       "risk": round(r["risk"] - ex["risk"], 3)}
     gaps = []
@@ -199,7 +301,7 @@ def recommend(cond: dict, existing: str | list[str] | None = None, priorities: d
                                                              "slope_pct")) / 4)
     conf = float(np.clip(model_confidence * PROFILE_CONFIDENCE + local_bonus, 0, 1))
     return {
-        "existing": ex, "recommended": picks, "all_ranked": [(r["key"], r["score"]) for r in scored],
+        "existing": ex, "chosen": ch, "recommended": picks, "all_ranked": [(r["key"], r["score"]) for r in scored],
         "confidence": round(conf, 3), "information_gaps": gaps,
         "disclaimer": "Bu sıralama karar desteğidir; nihai karar çiftçi ve yerel tarım uzmanına aittir.",
     }

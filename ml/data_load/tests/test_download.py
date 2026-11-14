@@ -9,7 +9,7 @@ from ml.data_load import download as dl
 def test_power_parse(monkeypatch):
     calls = []
 
-    def fake(url):
+    def fake(url, *_a, **_k):
         calls.append(url)
         if "FOO" in url:
             raise RuntimeError("HTTP 422: One of your parameters is incorrect: FOO.")
@@ -30,7 +30,7 @@ def test_ornl_parse_chunks(monkeypatch):
              for d in range(1, 365, 16)]
     subs = []
 
-    def fake(url):
+    def fake(url, *_a, **_k):
         if "/dates" in url:
             return {"dates": dates}
         subs.append(url)
@@ -68,3 +68,15 @@ def test_write_raw_merge(tmp_path):
     dl.write_raw(other, tmp_path)
     assert len(pd.read_parquet(p)) == 3
     assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_composite_dates_and_parallel(monkeypatch):
+    assert dl.composite_dates("MOD13Q1", "2024-12-15", "2025-01-20") == ["A2024353", "A2025001", "A2025017"]
+
+    def fake(url, *_a, **_k):
+        assert "/dates" not in url  # 16 günlük ürün için yavaş /dates çağrılmaz
+        return {"subset": [{"calendar_date": "2025-01-01", "data": [5000]}]}
+
+    monkeypatch.setattr(dl, "_fetch_json", fake)
+    df = dl.fetch_modis_ornl("a", 1.0, 2.0, "2025-01-01", "2025-01-10", parallel=True)
+    assert df["250m_16_days_NDVI"].tolist() == [5000.0]

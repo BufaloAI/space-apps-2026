@@ -25,6 +25,11 @@ class Settings:
     max_area_ha: float
     agents_file: Path
     ml_fake_delay_seconds: float
+    ml_provider: str  # "fake" | "xgboost"
+    ml_model_dir: str | None  # boşsa ml/runs/LATEST
+    ml_cache_dir: str | None  # boşsa ml/cache/parcels
+    ml_ndvi_timeout_seconds: float
+    ml_ndvi_retries: int
 
 
 def cors_origins() -> list[str]:
@@ -52,4 +57,9 @@ def load_settings() -> Settings:
         max_area_ha=float(os.environ.get("MAX_AREA_HA", "5000")),
         agents_file=Path(os.environ.get("AGENTS_FILE", str(Path(__file__).resolve().parents[1] / "agents.toml"))),
         ml_fake_delay_seconds=float(os.environ.get("ML_FAKE_DELAY_SECONDS", "2")),
+        ml_provider=os.environ.get("ML_PROVIDER", "fake").strip().lower(),
+        ml_model_dir=os.environ.get("ML_MODEL_DIR", "").strip() or None,
+        ml_cache_dir=os.environ.get("ML_CACHE_DIR", "").strip() or None,
+        ml_ndvi_timeout_seconds=float(os.environ.get("ML_NDVI_TIMEOUT_SECONDS", "60")),
+        ml_ndvi_retries=int(os.environ.get("ML_NDVI_RETRIES", "3")),
     )

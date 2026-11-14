@@ -57,15 +57,15 @@ def _throttle(host: str) -> None:
         _last_call[host] = _time.monotonic()
 
 
-def _fetch_json(url: str) -> dict:
-    """URL'den JSON okur: timeout, üstel geri çekilme + jitter ile 4 yeniden deneme."""
+def _fetch_json(url: str, timeout: float = TIMEOUT_S, retries: int = MAX_RETRIES) -> dict:
+    """URL'den JSON okur: timeout, üstel geri çekilme + jitter ile yeniden deneme."""
     host = urllib.parse.urlparse(url).netloc
     last: Exception | None = None
-    for attempt in range(MAX_RETRIES + 1):
+    for attempt in range(retries + 1):
         _throttle(host)
         try:
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-            with urllib.request.urlopen(req, timeout=TIMEOUT_S) as r:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
                 return json.loads(r.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             body = e.read().decode("utf-8", "replace")[:300]
@@ -75,9 +75,9 @@ def _fetch_json(url: str) -> dict:
             last = e
         except (urllib.error.URLError, TimeoutError, ConnectionError, json.JSONDecodeError) as e:
             last = e
-        if attempt < MAX_RETRIES:
+        if attempt < retries:
             delay = 2 ** attempt + random.uniform(0, 1)
-            log.warning("retry %d/%d in %.1fs: %s", attempt + 1, MAX_RETRIES, delay, last)
+            log.warning("retry %d/%d in %.1fs: %s", attempt + 1, retries, delay, last)
             _time.sleep(delay)
     raise RuntimeError(f"giving up on {url}: {last}")
 
@@ -93,7 +93,8 @@ def _d(x: str | date) -> date:
 
 # ---------------------------------------------------------------- POWER
 def fetch_power(area_id: str, lat: float, lon: float, start, end,
-                params: Sequence[str] = POWER_PARAMS) -> pd.DataFrame:
+                params: Sequence[str] = POWER_PARAMS, timeout: float = TIMEOUT_S,
+                retries: int = MAX_RETRIES) -> pd.DataFrame:
     """NASA POWER günlük nokta verisi. API'nin reddettiği parametreler düşürülür."""
     s, e = _d(start), _d(end)
     params = list(params)
@@ -105,7 +106,7 @@ def fetch_power(area_id: str, lat: float, lon: float, start, end,
             "start": s.strftime("%Y%m%d"), "end": e.strftime("%Y%m%d"), "format": "JSON"},
             safe=",")
         try:
-            data = _fetch_json(f"{POWER_URL}?{q}")
+            data = _fetch_json(f"{POWER_URL}?{q}", timeout, retries)
             break
         except RuntimeError as err:
             # hata mesajı: "One of your parameters is incorrect: FOO."
@@ -138,8 +139,26 @@ def _chunks(seq: list, n: int):
         yield seq[i:i + n]
 
 
+# 16 günlük kompozitlerin başlangıç günleri sabittir (yılın 1, 17, 33, ... günü). Yavaş /dates isteğine gerek yok.
+FIXED_16DAY = {"MOD13Q1": 1, "MYD13Q1": 9}
+
+
+def composite_dates(product: str, start, end) -> list[str]:
+    """16 günlük ürün için [start, end] aralığındaki kompozit tarihleri ('AYYYYDDD')."""
+    s, e = _d(start), _d(end)
+    first = FIXED_16DAY[product]
+    out = []
+    for y in range(s.year, e.year + 1):
+        for doy in range(first, 367, 16):
+            d = date(y, 1, 1) + timedelta(days=doy - 1)
+            if d.year == y and s <= d <= e:
+                out.append(f"A{y}{doy:03d}")
+    return out
+
+
 def fetch_modis_ornl(area_id: str, lat: float, lon: float, start, end,
-                     product: str = "MOD13Q1", bands: Sequence[str] | None = None) -> pd.DataFrame:
+                     product: str = "MOD13Q1", bands: Sequence[str] | None = None,
+                     timeout: float = TIMEOUT_S, retries: int = MAX_RETRIES, parallel: bool = False) -> pd.DataFrame:
     """ORNL DAAC MODIS web servisi, tek piksel (km=0).
 
     Birden fazla piksel dönerse MERKEZ piksel alınır (data[len//2]).
@@ -148,28 +167,40 @@ def fetch_modis_ornl(area_id: str, lat: float, lon: float, start, end,
     bands = list(bands or ORNL_BANDS[product])
     s, e = _d(start), _d(end)
     base = f"{ORNL_URL}/{product}"
-    dq = urllib.parse.urlencode({"latitude": lat, "longitude": lon})
-    dates = _fetch_json(f"{base}/dates?{dq}")["dates"]
-    mdates = [d["modis_date"] for d in dates if s <= _d(d["calendar_date"]) <= e]
+    if product in FIXED_16DAY:
+        mdates = composite_dates(product, s, e)
+    else:
+        dq = urllib.parse.urlencode({"latitude": lat, "longitude": lon})
+        dates = _fetch_json(f"{base}/dates?{dq}", timeout, retries)["dates"]
+        mdates = [d["modis_date"] for d in dates if s <= _d(d["calendar_date"]) <= e]
     if not mdates:
         return _empty(bands)
     per_band: dict[str, dict[pd.Timestamp, float]] = {b: {} for b in bands}
-    for b in bands:
-        for ch in _chunks(mdates, ORNL_MAX_DATES):
-            q = urllib.parse.urlencode({
-                "latitude": lat, "longitude": lon, "band": b,
-                "startDate": ch[0], "endDate": ch[-1],
-                "kmAboveBelow": 0, "kmLeftRight": 0})
-            try:
-                resp = _fetch_json(f"{base}/subset?{q}")
-            except Exception as ex:  # noqa: BLE001  (bir parça düşerse diğerleri korunur; tekrar çalıştırmak güvenli)
-                log.warning("%s %s %s %s..%s atlandı: %s", product, area_id, b, ch[0], ch[-1], ex)
-                continue
-            for row in resp.get("subset", []):
-                vals = row.get("data") or []
-                if not vals:
-                    continue
+
+    def one(b: str, ch: list[str]) -> None:
+        q = urllib.parse.urlencode({
+            "latitude": lat, "longitude": lon, "band": b,
+            "startDate": ch[0], "endDate": ch[-1],
+            "kmAboveBelow": 0, "kmLeftRight": 0})
+        try:
+            resp = _fetch_json(f"{base}/subset?{q}", timeout, retries)
+        except Exception as ex:  # noqa: BLE001  (bir parça düşerse diğerleri korunur; tekrar çalıştırmak güvenli)
+            log.warning("%s %s %s %s..%s atlandı: %s", product, area_id, b, ch[0], ch[-1], ex)
+            return
+        for row in resp.get("subset", []):
+            vals = row.get("data") or []
+            if vals:
                 per_band[b][pd.Timestamp(row["calendar_date"])] = float(vals[len(vals) // 2])
+
+    work = [(b, ch) for b in bands for ch in _chunks(mdates, ORNL_MAX_DATES)]
+    if parallel and len(work) > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        with ThreadPoolExecutor(max_workers=min(4, len(work))) as ex:
+            list(ex.map(lambda w: one(*w), work))
+    else:
+        for w in work:
+            one(*w)
     times = sorted({t for d in per_band.values() for t in d})
     out = pd.DataFrame({"time": pd.DatetimeIndex(times).astype("datetime64[ns]")})
     out.insert(0, "source", product)
@@ -370,10 +401,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--out", default="ml/cache/raw")
     p.add_argument("--sources", default="power,modis",
                    help="power,modis,modis_lst,smap,gpm")
+    p.add_argument("--workers", type=int, default=3,
+                   help="aynı anda kaç görev (ORNL 503 veriyorsa 1 deneyin)")
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     areas = json.loads(Path(a.areas).read_text())
-    fails = run(areas, a.start, a.end, a.out, [s.strip() for s in a.sources.split(",")])
+    fails = run(areas, a.start, a.end, a.out, [s.strip() for s in a.sources.split(",")], workers=a.workers)
     print(f"done; failures: {len(fails)}")
     for f in fails:
         print(f"  {f['source']} {f['area_id']}: {f['error']}")

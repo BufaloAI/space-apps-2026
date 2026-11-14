@@ -52,7 +52,13 @@ def test_one_failing_provider_keeps_the_others():
 def test_default_agents_file_is_valid():
     agents = load_agents(Path(__file__).resolve().parents[1] / "agents.toml")
     assert len(agents) == 2
-    assert agents[0].layers == ("yagis",) and set(agents[1].layers) == {"toprak", "nem"}
+    # gerçek ML (ml/service.py to_layers) katman adları
+    real = {"ndvi_tahmin", "risk", "iklim", "rotasyon_1", "rotasyon_2", "rotasyon_3", "rotasyon_mevcut",
+            "rotasyon_secilen"}
+    for a in agents:
+        assert set(a.layers) | set(a.optional_layers) <= real
+    assert agents[0].layers == ("ndvi_tahmin", "risk", "iklim")
+    assert agents[1].optional_layers == ("rotasyon_mevcut", "rotasyon_secilen")
 
 
 @pytest.mark.parametrize(

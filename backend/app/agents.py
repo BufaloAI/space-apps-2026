@@ -19,9 +19,11 @@ class AgentConfig:
     name: str
     system_prompt: str
     layers: tuple[str, ...]  # bu botun göreceği ML katmanları
+    optional_layers: tuple[str, ...] = ()  # varsa gösterilir, yoksa "veri yok" denmez (örn. mevcut rotasyon)
+    max_sentences: int = 5
 
     def public(self) -> dict:
-        return {"id": self.id, "name": self.name, "layers": list(self.layers)}
+        return {"id": self.id, "name": self.name, "layers": [*self.layers, *self.optional_layers]}
 
 
 def load_agents(path: Path) -> list[AgentConfig]:
@@ -38,6 +40,8 @@ def load_agents(path: Path) -> list[AgentConfig]:
                 name=str(a["name"]).strip(),
                 system_prompt=str(a["system_prompt"]).strip(),
                 layers=tuple(str(x) for x in a["layers"]),
+                optional_layers=tuple(str(x) for x in a.get("optional_layers", ())),
+                max_sentences=int(a.get("max_sentences", 5)),
             )
         except KeyError as e:
             raise ValueError(f"{path}: {i}. [[agent]] içinde {e} alanı eksik") from None

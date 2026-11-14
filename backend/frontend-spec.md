@@ -36,7 +36,8 @@ Sayfa açılır
 |---|---|---|
 | Oturum isteği | `POST /api/session` | gövde yok |
 | Parsel poligonu | `POST /api/analysis` → `polygon` | GeoJSON `Polygon` (veya `Polygon` içeren `Feature`). Koordinatlar **`[boylam, enlem]`** (WGS84; Leaflet'te `[lat, lng]` değil, **ters sıra**!) |
-| Tarih | `POST /api/analysis` → `date` | `"YYYY-MM-DD"` (yıl 2000–2100) |
+| Tarih (isteğe bağlı) | `POST /api/analysis` → `date` | `"YYYY-MM-DD"`; verilmezse bugün. Gerçek ML **her zaman bugüne kadarki güncel veriyi** kullanır, tarih yalnızca kayıt içindir |
+| Rotasyon seçenekleri (isteğe bağlı) | `POST /api/analysis` ve `POST /api/rotations` | `existing_rotation`, `chosen_rotation`, `priorities`, `profile` (bkz. 5.5) |
 | Takip sorusu | `POST /api/ask` → `message` | metin, 1–2000 karakter |
 | Hedef bot (isteğe bağlı) | `POST /api/ask` → `agent` | bot `id`'si; verilmezse **tüm botlara** gider |
 | Oturum kimliği | her istekte | gövdede `session_id` (POST) veya `?session_id=` (GET). Yol parametresi olan uçlarda yolda |
@@ -98,8 +99,8 @@ Bu akış aynı zamanda "sırada hâlâ buradayım" sinyalidir: **sıradaki kull
 **`GET /api/agents`** → `200`
 ```json
 [
-  { "id": "a", "name": "Yağış Analisti", "layers": ["yagis"] },
-  { "id": "b", "name": "Toprak ve Nem Analisti", "layers": ["toprak", "nem"] }
+  { "id": "a", "name": "Risk ve İklim Analisti", "layers": ["ndvi_tahmin", "risk", "iklim"] },
+  { "id": "b", "name": "Rotasyon Danışmanı", "layers": ["rotasyon_1", "rotasyon_2", "rotasyon_3", "rotasyon_mevcut", "rotasyon_secilen"] }
 ]
 ```
 Bot sayısı, adları ve kimlikleri **ayardan** gelir ve değişebilir. Arayüzü "tam 2 sütun, şu adlarla" diye sabitlemeyin; listeyi bu uçtan okuyup dinamik kurun (şimdilik 2 bot var, ekranı 2 sütun düşünün ama kodu N'e dayanıklı yazın). `layers`, botun hangi veriyi gördüğünü kullanıcıya göstermek için kullanılabilir.
@@ -117,7 +118,11 @@ Bot sayısı, adları ve kimlikleri **ayardan** gelir ve değişebilir. Arayüz�
   }
 }
 ```
+İsteğe bağlı alanlar (5.5'teki biçimde): `existing_rotation`, `chosen_rotation`, `priorities`, `profile`. Akış önerir: ilk analizde yalnızca poligon gönderilebilir; çiftçi sonra kendi seçimini `POST /api/rotations` ile değerlendirir.
+
 Cevap: `{ "job_id": "lyugAUXz788" }`. Analiz **arka planda** başlar; hemen ardından aşağıdaki SSE'ye bağlanın.
+
+**Süre (gerçek ML):** iklim verisi ~3 sn, uydu NDVI verisi NASA ORNL servisinden **30 sn – 2 dk** (servis yavaş, arada hata verip tekrar deneniyor). Aynı gün aynı parsel ikinci kez istenirse önbellekten **< 1 sn**. Bu sürede ilerleme olaylarını gösterin. NDVI alınamazsa analiz yine biter (NDVI katmanı olmaz, uyarı gelir).
 
 Poligon kuralları (backend doğrular, hata `422` + Türkçe mesaj; frontend ayrıca ön kontrol yaparsa kullanıcı daha hızlı geri bildirim alır):
 - Yalnızca **tek** `Polygon`. `MultiPolygon`, nokta, çizgi, **delikli** poligon kabul edilmez.
@@ -134,7 +139,33 @@ Poligon kuralları (backend doğrular, hata `422` + Türkçe mesaj; frontend ayr
 ```
 Yalnızca bir bota sormak için `"agent": "a"` ekleyin. Cevap: `{ "job_id": "qEOwT4INdj4" }`; sonucu aynı SSE ile izleyin. **Yeni bir analiz başlatınca önceki sohbet ve önceki iş silinir.**
 
-### 5.5 İş akışı (SSE) ve anlık durum
+### 5.5 Rotasyon seçimi (çiftçinin kendi tercihi)
+
+Önce sistem önerir (analiz sonucu `rotasyon_1..3`), sonra çiftçi isterse kendi rotasyonunu/önceliklerini seçer.
+
+**`GET /api/rotations/catalog`** → form için ürünler, hazır rotasyonlar, öncelikler:
+```json
+{ "crops": [{"id":"corn","name":"Mısır","family":"poaceae","season":"warm","cover_crop":false}, …],
+  "rotations": [{"id":"corn_soy","name":"Mısır → Soya","sequence":["corn","soybean"]}, …],
+  "priorities": [{"id":"water","label":"su tasarrufu","default":1.0}, …],
+  "rotation_syntax": "ürünler '>' ile sıralanır, örtü bitkisi '+' ile eklenir: corn+cereal_rye>soybean" }
+```
+(`ML_PROVIDER=fake` iken `503`.)
+
+**`POST /api/rotations`** → `200` (anında, LLM çağırmaz; önce analiz gerekli, yoksa `409 no_analysis`)
+```json
+{ "session_id": "…",
+  "existing_rotation": "corn>soybean",
+  "chosen_rotation": "corn+cereal_rye>soybean>winter_wheat",
+  "priorities": { "water": 2, "soil_health": 1.5, "income": 1, "erosion": 1, "forage": 0.3 },
+  "profile": { "irrigation": false, "slope_pct": 3, "soil_om_pct": 3.2, "soil_texture": "silt_loam" } }
+```
+- Hepsi isteğe bağlı; verilmeyen alan önceki değerini korur. Rotasyon: katalogdaki `rotations[].id` **ya da** ürün id'leri `>` ile (örtü bitkisi `+` ile). Öncelik anahtarları: `water, soil_health, income, erosion, forage`, ağırlık 0–5.
+- Cevap: `{"layers":[…yeni rotasyon_* katmanları…], "options":{…}}`. Ekrandaki rotasyon katmanlarını bunlarla **değiştirin**.
+- Bilinmeyen ürün → `422` + Türkçe metin (`"Geçersiz rotasyon girdisi: …"`).
+- Rotasyon botu, **bir sonraki takip sorusunda** güncel seçimi görür (ayrı bir istek gerekmez).
+
+### 5.6 İş akışı (SSE) ve anlık durum
 
 **`GET /api/jobs/{job_id}/events?session_id=…`** (SSE, `EventSource` ile kullanılabilir — GET'tir)
 
@@ -145,8 +176,9 @@ Olay türleri (alanlara göre ayırt edin):
 | Olay | Ne zaman | Biçim |
 |---|---|---|
 | ML başladı | akışın ilk olayı | `{"stage":"ml","status":"started","date":"2026-05-01","parcel":{"area_ha":92.86,"centroid":[29.005,41.005]}}` |
+| ML ilerleme | gerçek ML'de birkaç kez | `{"stage":"ml","status":"progress","progress":{"stage":"data","source":"ndvi","status":"started"}}`. `progress.stage`: `data` (`source`: `weather` / `ndvi`; `status`: `started` / `done` / `failed` / `cache`), `features`, `model`, `rotations` |
 | ML bitti | ML sonuçları hazır | `{"stage":"ml","status":"done","errors":[],"layers":[ … ]}` (katman biçimi aşağıda) |
-| Botlar | botlar yazmaya başlamadan | `{"stage":"agents","agents":[{"id":"a","name":"Yağış Analisti","layers":["yagis"]}, …]}` |
+| Botlar | botlar yazmaya başlamadan | `{"stage":"agents","agents":[{"id":"a","name":"Risk ve İklim Analisti","layers":["ndvi_tahmin","risk","iklim"]}, …]}` |
 | Takip sorusu | yalnızca `ask` işlerinde ilk olay | `{"stage":"ask","message":"…","agents":[…]}` |
 | Bot yazıyor | çok sayıda | `{"agent":"a","delta":"Veriler, 30 günlük "}` |
 | Bot bitti | bot başına bir kez | `{"agent":"a","done":true}` |
@@ -169,7 +201,22 @@ Olay türleri (alanlara göre ayırt edin):
 }
 ```
 - `confidence` 0–1 arası sayı. **`confidence_level`** (`yüksek` ≥ 0.8, `orta` ≥ 0.6, `düşük`) backend'den gelir; **frontend eşik hesaplamasın**, bunu gösterin (rozet/renk).
-- Şu an ML **sahte veri** üretiyor (`note` içinde yazıyor); gerçek ML gelince alanlar aynı kalır.
+- `details` (isteğe bağlı, nesne): katmanın yapısal ayrıntısı; ekranda zengin gösterim için. Bota gitmez. Sahte ML'de yoktur.
+- `min == max` ise aralık yoktur (tek değer); "aralık" göstermeyin.
+- Gerçek ML katmanları (`ML_PROVIDER=xgboost`):
+
+| `name` | Ne | `mean` / `min`–`max` | `details` |
+|---|---|---|---|
+| `ndvi_tahmin` | ~2 hafta sonraki bitki örtüsü (NDVI 0–1) | p50 / %80 aralığı (p10–p90) | `forecast` (`target_week`, `ndvi_last_observed`, `is_nowcast`, `top_features`…) ve **`_meta`** (aşağıda) |
+| `risk` | genel risk 0–100 | tek değer | `risk.components`: `vegetation_stress`, `water_stress`, `heat_stress`, `frost_risk` → `{score, level}` |
+| `iklim` | yaz (mayıs–eylül) yağışı, mm | ort. / en kurak–en yağışlı yaz | `area_conditions` (GDD, sıcak/don günleri, su stresi…) |
+| `rotasyon_1..3` | önerilen rotasyonlar, puan 0–100 | tek değer | aşağıdaki rotasyon nesnesi |
+| `rotasyon_mevcut` | çiftçinin mevcut rotasyonu (girdiyse) | tek değer | aynı |
+| `rotasyon_secilen` | çiftçinin değerlendirmek istediği (girdiyse) | tek değer | aynı |
+
+- **`_meta`** (ilk katmanın `details._meta`'sı): `warnings` (kullanıcıya gösterin: uydu gecikmesi, eksik veri), `data_as_of` (`weather`, `ndvi` tarihleri), `data_sources`, `information_gaps`, `disclaimer` ("nihai karar çiftçiye aittir"; **ekranda gösterin**).
+- **Rotasyon `details`**: `name`, `sequence_names` (örn. `["Mısır + Çavdar (örtü bitkisi)", "Soya"]`), `score`, `risk` (0–1), `why[]`, `benefits[]`, **`damages[]`**, `expected_yield_loss_pct` (ürün → `[alt, üst]` %), `risks_for_local_review[]`, `delta_vs_existing` (`score`, `risk` farkı; mevcut rotasyon girildiyse).
+- **`damages[]`** (risklerin olası zararları, ağırdan hafife sıralı): `{"risk":"kuraklık / su stresi","affects":"Mısır","severity":"yüksek|orta|düşük","yield_loss_pct":[6.0,18.0] veya null,"impact":"…açıklama…"}`. Verim kaybı aralıkları **genel tahmindir**; ekranda "tahmini" diye belirtin.
 - `errors`: bir ML bileşeni çökmüşse mesajları (diğer katmanlar yine gelir). Boş liste = sorun yok. Hiç katman yoksa iş hata ile biter.
 
 **`GET /api/jobs/{job_id}?session_id=…`** → `200` anlık durum (sayfa yenileme / yeniden bağlanma için)
@@ -219,7 +266,9 @@ Olay türleri (alanlara göre ayırt edin):
 ## 8. Arayüzde gösterilmesi gerekenler
 
 - Harita üzerinde poligon çizme/düzenleme/silme, tarih seçici, "Analiz et" düğmesi.
-- ML çalışırken ilerleme (şimdilik yalnızca "ML çalışıyor" → "botlar yazıyor" aşamaları var; yüzde yok).
+- ML çalışırken ilerleme: `progress` olaylarından "iklim verisi alındı ✓ / uydu verisi bekleniyor…" gibi adımlar (NDVI 2 dakikaya kadar sürebilir; yüzde yok).
+- `_meta.warnings` ve `_meta.disclaimer` her zaman görünür olmalı.
+- Rotasyon kartları: ad, sıra, puan, risk, **olası zararlar** (`damages`, şiddet rozetiyle), faydalar, mevcut rotasyona göre fark. Altında "Kendi rotasyonumu değerlendir" formu (katalogdan) + öncelik kaydırıcıları → `POST /api/rotations`.
 - Katmanlar: ad, birim, ortalama (min–max aralığıyla), **eminlik rozeti** (`confidence_level`). Düşük eminlik **görsel olarak belirgin** olmalı.
 - **İki (veya N) bot yan yana**: başlıkta bot adı, altında akarak yazılan metin, hangi veriyi gördüğünü gösteren küçük etiket (`layers`). Mobilde alt alta.
 - Takip sorusu kutusu + "tüm botlara / yalnız şu bota" seçimi.
@@ -238,8 +287,8 @@ Olay türleri (alanlara göre ayırt edin):
 
 ## 10. Henüz YOK / değişebilir (bunlara göre sabit varsayım yapmayın)
 
-- ML şu an **sahte veri** üretiyor; katmanların adları (`yagis`, `toprak`, `nem`) ve sayısı gerçek ML ile değişebilir. Arayüzü katman listesinden dinamik kurun.
-- Bot adları/prompt'ları yer tutucu; botların kimlikleri değişebilir.
+- Gerçek ML katmanları yukarıdaki tabloda; `ML_PROVIDER=fake` iken eski sahte katmanlar (`yagis`, `toprak`, `nem`) gelir. Arayüzü katman listesinden dinamik kurun.
+- Bot adları/prompt'ları değişebilir; listeyi `GET /api/agents`'ten okuyun.
 - Rate limit ve kimlik doğrulama yok.
 - Bir analizi iptal etme ucu yok (oturumdan çıkmak işi iptal eder).
 - Analiz ilerleme yüzdesi yok.

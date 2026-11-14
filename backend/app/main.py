@@ -23,7 +23,7 @@ from .agents import GROUNDING_RULES, AgentConfig, load_agents
 from .config import cors_origins, load_settings
 from .geo import Parcel, PolygonError, parse_polygon
 from .llm import LLM
-from .ml import FakeMLProvider, Layer, run_providers
+from .ml import Layer, MLUserError, UserMessage, XGBoostMLProvider, build_providers, run_providers
 from .sessions import Analysis, Job, Session, SessionManager
 
 log = logging.getLogger("backend")
@@ -50,7 +50,12 @@ async def lifespan(app: FastAPI):
     app.state.sessions = SessionManager(settings.idle_timeout_seconds, settings.queue_ttl_seconds)
     app.state.llm = LLM(settings)
     app.state.agents = load_agents(settings.agents_file)
-    app.state.ml_providers = [FakeMLProvider(settings.ml_fake_delay_seconds)]
+    app.state.ml_providers = build_providers(
+        settings.ml_provider, fake_delay=settings.ml_fake_delay_seconds, model_dir=settings.ml_model_dir,
+        cache_dir=settings.ml_cache_dir, ndvi_timeout=settings.ml_ndvi_timeout_seconds,
+        ndvi_retries=settings.ml_ndvi_retries,
+    )
+    log.info("ML sağlayıcısı: %s", ", ".join(p.name for p in app.state.ml_providers))
     sweeper = asyncio.create_task(_sweeper(app.state.sessions))
     try:
         yield
@@ -209,19 +214,35 @@ def _system_message(agent: AgentConfig) -> dict:
     return {"role": "system", "content": f"{agent.system_prompt}\n\n{GROUNDING_RULES}"}
 
 
-def _data_message(agent: AgentConfig, parcel: Parcel, date: dt.date, layers: list[Layer]) -> dict:
-    """Botun yalnızca kendi katmanlarını içeren istem. Eksik katman açıkça 'veri yok' denir."""
+def _layer_lines(agent: AgentConfig, layers: list[Layer]) -> list[str]:
     by_name = {layer.name: layer for layer in layers}
     lines = [
         f"- {by_name[n].summary()}" if n in by_name else f"- {n}: veri yok (ML bu katmanı üretemedi)"
         for n in agent.layers
     ]
+    lines += [f"- {by_name[n].summary()}" for n in agent.optional_layers if n in by_name]
+    return lines
+
+
+def _ml_notes(layers: list[Layer]) -> list[str]:
+    """Gerçek ML'in uyarıları (veri gecikmesi, eksik kaynak) ve bilgi boşlukları; sahte ML'de boş."""
+    meta = next((lay.details["_meta"] for lay in layers if lay.details and "_meta" in lay.details), None)
+    if not meta:
+        return []
+    return [*meta.get("warnings", []), *meta.get("information_gaps", [])[:4]]
+
+
+def _data_message(agent: AgentConfig, parcel: Parcel, date: dt.date, layers: list[Layer]) -> dict:
+    """Botun yalnızca kendi katmanlarını içeren istem. Eksik katman açıkça 'veri yok' denir."""
+    lines = _layer_lines(agent, layers)
+    notes = _ml_notes(layers)
     lon, lat = parcel.centroid
     text = (
         f"Parsel: yaklaşık {parcel.area_ha:.1f} hektar, merkez {lat:.4f} K, {lon:.4f} D. "
         f"Analiz tarihi: {date.isoformat()}.\n"
         "Sana verilen veriler:\n" + "\n".join(lines) +
-        "\n\nBu verileri kendi bakış açından, en fazla 5 cümleyle yorumla."
+        ("\nNotlar (veri sınırları):\n" + "\n".join(f"- {n}" for n in notes) if notes else "") +
+        f"\n\nBu verileri kendi bakış açından, en fazla {agent.max_sentences} cümleyle yorumla."
     )
     return {"role": "user", "content": text}
 
@@ -264,10 +285,52 @@ async def _run_agents(
 # ---------------------------------------------------------------------------
 # Parsel analizi: poligon + tarih -> ML -> botların (paralel) yorumu
 # ---------------------------------------------------------------------------
-class AnalysisRequest(BaseModel):
+PRIORITY_KEYS = {"water", "soil_health", "income", "erosion", "forage"}
+
+
+class FarmProfile(BaseModel):
+    """Çiftçinin bildiği tarla bilgileri (hepsi isteğe bağlı); rotasyon puanına ve güvenine girer."""
+
+    irrigation: bool | None = None
+    soil_om_pct: float | None = Field(default=None, ge=0, le=100)
+    slope_pct: float | None = Field(default=None, ge=0, le=100)
+    soil_texture: str | None = Field(default=None, max_length=40)
+
+    def as_dict(self) -> dict:
+        d = self.model_dump(exclude_none=True)
+        if "irrigation" in d:
+            d["irrigation"] = float(d["irrigation"])
+        return d
+
+
+class RotationOptions(BaseModel):
+    existing_rotation: str | None = Field(default=None, max_length=200)  # örn. "corn>soybean"
+    chosen_rotation: str | None = Field(default=None, max_length=200)  # çiftçinin değerlendirmek istediği
+    priorities: dict[str, float] | None = None  # örn. {"water": 2, "income": 1}
+    profile: FarmProfile | None = None
+
+    @field_validator("priorities")
+    @classmethod
+    def _check_priorities(cls, v: dict[str, float] | None) -> dict[str, float] | None:
+        if v is None:
+            return v
+        bad = set(v) - PRIORITY_KEYS
+        if bad:
+            raise ValueError(f"Bilinmeyen öncelik: {sorted(bad)}. Geçerli: {sorted(PRIORITY_KEYS)}")
+        if any(not 0 <= x <= 5 for x in v.values()):
+            raise ValueError("Öncelik ağırlıkları 0-5 arasında olmalı")
+        return v
+
+    def as_options(self) -> dict:
+        return {"existing_rotation": self.existing_rotation, "chosen_rotation": self.chosen_rotation,
+                "priorities": self.priorities, "profile": self.profile.as_dict() if self.profile else None}
+
+
+class AnalysisRequest(RotationOptions):
     session_id: str
     polygon: dict  # GeoJSON Polygon (veya Polygon içeren Feature), [boylam, enlem]
-    date: dt.date  # YYYY-MM-DD
+    # Kayıt için. Gerçek ML her zaman bugüne kadarki güncel veriyi kullanır.
+    date: dt.date = Field(default_factory=dt.date.today)
 
     @field_validator("date")
     @classmethod
@@ -294,12 +357,19 @@ async def start_analysis(req: AnalysisRequest, request: Request):
                 "stage": "ml", "status": "started", "date": req.date.isoformat(),
                 "parcel": {"area_ha": round(parcel.area_ha, 2), "centroid": list(parcel.centroid)},
             })
-            layers, errors = await run_providers(st.ml_providers, parcel, req.date)
-            session.analysis = Analysis(parcel, req.date, layers)
+            options = req.as_options()
+            layers, errors = await run_providers(
+                st.ml_providers, parcel, req.date, options=options,
+                progress=lambda p: job.publish({"stage": "ml", "status": "progress", "progress": p}),
+            )
+            session.analysis = Analysis(parcel, req.date, layers, options)
+            session.pending_updates.clear()
             job.publish({"stage": "ml", "status": "done", "errors": errors,
                          "layers": [layer.to_dict() for layer in layers]})
             if not layers:
-                job.publish({"error": "Analiz sonuç üretemedi, lütfen tekrar deneyin."})
+                user = [e for e in errors if isinstance(e, UserMessage)]
+                msg = user[0] if user else "Analiz sonuç üretemedi, lütfen tekrar deneyin."
+                job.publish({"error": msg})
                 return
             job.publish({"stage": "agents", "agents": [a.public() for a in st.agents]})
             session.agent_history.clear()
@@ -351,7 +421,11 @@ async def ask(req: AskRequest, request: Request):
                 history = session.agent_history.get(a.id) or [
                     _data_message(a, analysis.parcel, analysis.date, analysis.layers)
                 ]
-                jobs.append((a, [_system_message(a), *history, question]))
+                q = question
+                update = session.pending_updates.pop(a.id, None)
+                if update and session.agent_history.get(a.id):  # yeniden kurulan veri mesajı zaten güncel
+                    q = {"role": "user", "content": f"[Güncellenmiş veri]\n{update}\n\n[Soru]\n{req.message}"}
+                jobs.append((a, [_system_message(a), *history, q]))
             await _run_agents(jobs, st.llm, session, job, st.settings.history_max_messages)
             job.publish({"done": True})
         except asyncio.CancelledError:
@@ -364,3 +438,49 @@ async def ask(req: AskRequest, request: Request):
 
     job = _start_job(st.sessions, session, "ask", run)
     return {"job_id": job.id}
+
+
+# ---------------------------------------------------------------------------
+# Rotasyon: katalog ve çiftçinin kendi seçimiyle yeniden puanlama (veri yeniden çekilmez)
+# ---------------------------------------------------------------------------
+def _xgb_provider(request: Request) -> XGBoostMLProvider:
+    p = next((p for p in request.app.state.ml_providers if isinstance(p, XGBoostMLProvider)), None)
+    if p is None:
+        raise HTTPException(503, "Gerçek ML sağlayıcısı etkin değil (ML_PROVIDER=xgboost).")
+    return p
+
+
+@app.get("/api/rotations/catalog")
+async def rotation_catalog(request: Request):
+    """Form için ürünler, hazır rotasyonlar ve öncelik anahtarları."""
+    return _xgb_provider(request).catalog()
+
+
+class RescoreRequest(RotationOptions):
+    session_id: str
+
+
+@app.post("/api/rotations")
+async def rescore_rotations(req: RescoreRequest, request: Request):
+    """Son analizin verisiyle rotasyonları yeniden puanlar (milisaniyeler, LLM çağrılmaz).
+    Rotasyon katmanlarını gören botlar, bir sonraki takip sorusunda güncel veriyi görür."""
+    st = request.app.state
+    provider = _xgb_provider(request)
+    session = _require_active(st.sessions, req.session_id)
+    if session.analysis is None:
+        raise HTTPException(409, detail={"status": "no_analysis"})
+    analysis = session.analysis
+    merged = {**analysis.options, **{k: v for k, v in req.as_options().items() if v is not None}}
+    try:
+        new_layers = provider.rescore(analysis.parcel, merged.get("existing_rotation"), merged.get("chosen_rotation"),
+                                      merged.get("priorities"), merged.get("profile"))
+    except MLUserError as e:
+        raise HTTPException(422, str(e)) from None
+    analysis.layers = [lay for lay in analysis.layers if not lay.name.startswith("rotasyon_")] + new_layers
+    analysis.options = merged
+    st.sessions.touch(session.id)  # kullanıcı etkileşimi: boşta kalma sayacını sıfırla
+    names = {lay.name for lay in new_layers}
+    for a in st.agents:
+        if names & {*a.layers, *a.optional_layers} or any(n.startswith("rotasyon_") for n in a.layers):
+            session.pending_updates[a.id] = "\n".join(_layer_lines(a, analysis.layers))
+    return {"layers": [lay.to_dict() for lay in new_layers], "options": merged}

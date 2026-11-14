@@ -69,6 +69,7 @@ def build(raw: list[str], out: str, areas: str | None = None, cfg: dict | None =
         "weeks": [str(feat["week"].min().date()), str(feat["week"].max().date())],
         "rows": len(feat),
         "rows_with_observed_target": int(feat.get("target_observed", pd.Series(dtype=float)).sum()),
+        "areas_with_ndvi": sorted(feat.loc[feat["ndvi"].notna(), "area_id"].unique().tolist()) if "ndvi" in feat else [],
         "n_features": len(features.feature_columns(feat)),
         "feature_missing_top": {k: round(float(v), 3) for k, v in missing.head(15).items()},
         "dtypes": {str(k): int(v) for k, v in feat.dtypes.astype(str).value_counts().items()},
@@ -88,6 +89,13 @@ def main(argv=None):
     rep = build(a.raw, a.out, a.areas, load_config(a.config))
     if rep["synthetic"]:
         print("UYARI: girdi SENTETİK veri içeriyor; sonuçlar yalnızca deneme amaçlıdır.")
+    if rep["rows_with_observed_target"] == 0:
+        print("UYARI: NDVI verisi yok, model EĞİTİLEMEZ. Önce MODIS indirmesini tamamlayın: "
+              "ml.data_load.download --sources modis --workers 1")
+    else:
+        no_ndvi = sorted(set(rep["areas"]) - set(rep.get("areas_with_ndvi", rep["areas"])))
+        if no_ndvi:
+            print(f"UYARI: şu alanlarda NDVI yok (eğitime girmez): {', '.join(no_ndvi)}")
     print(json.dumps({k: rep[k] for k in ("areas", "weeks", "rows", "rows_with_observed_target", "n_features")},
                      ensure_ascii=False))
 

@@ -212,6 +212,12 @@ def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: P
 
     feats_all = F.feature_columns(df)
     mode = mc.get("target_mode", "delta")
+    if TARGET not in df or "ndvi" not in df or df.get("target_observed", pd.Series(dtype=float)).sum() == 0:
+        raise RuntimeError(
+            "Özellik tablosunda NDVI hedefi yok: MODIS NDVI verisi hiç inmemiş (ml/cache/raw/MOD13Q1.parquet "
+            "yok ya da boş). İndirmeyi yalnızca NDVI için tekrar çalıştırın (var olan veriye eklenir):\n"
+            "  uv run python -m ml.data_load.download --areas <alanlar.json> --sources modis --workers 1 "
+            "--out ml/cache/raw\nsonra ml.data_load.build'i tekrar çalıştırın.")
     df = df[df[TARGET].notna() & (df["target_observed"] > 0)].copy()
     df[FIT] = fit_target(df, mode)
     df = df[df[FIT].notna()]

@@ -103,7 +103,7 @@ class Job:
         st: dict = {
             "job_id": self.id, "kind": self.kind, "status": self.status,
             "last_event_id": len(self.events) - 1,
-            "parcel": None, "date": None, "layers": [], "ml_errors": [],
+            "parcel": None, "date": None, "layers": [], "ml_errors": [], "ml_progress": [],
             "question": None, "agents": {}, "error": None,
         }
         for e in self.events:
@@ -111,6 +111,8 @@ class Job:
             if stage == "ml":
                 if e["status"] == "started":
                     st["parcel"], st["date"] = e["parcel"], e["date"]
+                elif e["status"] == "progress":
+                    st["ml_progress"].append(e["progress"])
                 else:
                     st["layers"], st["ml_errors"] = e["layers"], e["errors"]
             elif stage in ("agents", "ask"):
@@ -141,6 +143,7 @@ class Analysis:
     parcel: Parcel
     date: dt.date
     layers: list[Layer]
+    options: dict = field(default_factory=dict)  # mevcut/seçilen rotasyon, öncelikler, tarla profili
 
 
 @dataclass
@@ -151,6 +154,8 @@ class Session:
     job: Job | None = None  # en son iş (analiz veya soru)
     analysis: Analysis | None = None
     agent_history: dict[str, list[dict]] = field(default_factory=dict)  # bot id -> mesajlar (system hariç)
+    # analizden sonra güncellenen veri (örn. çiftçi rotasyon seçti): bot id -> bir sonraki soruya eklenecek metin
+    pending_updates: dict[str, str] = field(default_factory=dict)
 
 
 class SessionManager:
@@ -273,6 +278,7 @@ class SessionManager:
             s.job.cancel()
             s.job = None
         s.agent_history.clear()
+        s.pending_updates.clear()
         s.analysis = None
 
     def _promote(self) -> None:
