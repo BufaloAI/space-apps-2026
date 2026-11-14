@@ -1,0 +1,5477 @@
+[
+ {
+  "area_id": "ia_story_01",
+  "lat": 42.03,
+  "lon": -93.74,
+  "state": "IA",
+  "region": "corn_belt",
+  "bbox": [
+   -93.742,
+   42.028,
+   -93.738,
+   42.032
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "ia_story_02",
+  "lat": 42.1,
+  "lon": -93.6,
+  "state": "IA",
+  "region": "corn_belt",
+  "bbox": [
+   -93.602,
+   42.098,
+   -93.598,
+   42.102
+  ],
+  "existing_rotation": "corn>soybean>corn",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "ia_webster_01",
+  "lat": 42.45,
+  "lon": -94.2,
+  "state": "IA",
+  "region": "corn_belt",
+  "bbox": [
+   -94.202,
+   42.448,
+   -94.198,
+   42.452
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "ia_webster_02",
+  "lat": 42.55,
+  "lon": -94.35,
+  "state": "IA",
+  "region": "corn_belt",
+  "bbox": [
+   -94.352,
+   42.548,
+   -94.348,
+   42.552
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "ia_sioux_02",
+  "lat": 43.05,
+  "lon": -96.0,
+  "state": "IA",
+  "region": "corn_belt",
+  "bbox": [
+   -96.002,
+   43.048,
+   -95.998,
+   43.052
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "ia_cedar_01",
+  "lat": 41.75,
+  "lon": -91.2,
+  "state": "IA",
+  "region": "corn_belt",
+  "bbox": [
+   -91.202,
+   41.748,
+   -91.198,
+   41.752
+  ],
+  "existing_rotation": "soybean>corn",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ia_cedar_02",
+  "lat": 41.8,
+  "lon": -91.05,
+  "state": "IA",
+  "region": "corn_belt",
+  "bbox": [
+   -91.052,
+   41.798,
+   -91.048,
+   41.802
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "il_champaign_01",
+  "lat": 40.04,
+  "lon": -88.23,
+  "state": "IL",
+  "region": "corn_belt",
+  "bbox": [
+   -88.232,
+   40.038,
+   -88.228,
+   40.042
+  ],
+  "existing_rotation": "soybean>corn",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "il_champaign_02",
+  "lat": 40.15,
+  "lon": -88.4,
+  "state": "IL",
+  "region": "corn_belt",
+  "bbox": [
+   -88.402,
+   40.148,
+   -88.398,
+   40.152
+  ],
+  "existing_rotation": "soybean>corn>corn",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "il_champaign_03",
+  "lat": 39.95,
+  "lon": -88.1,
+  "state": "IL",
+  "region": "corn_belt",
+  "bbox": [
+   -88.102,
+   39.948,
+   -88.098,
+   39.952
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "il_mclean_01",
+  "lat": 40.45,
+  "lon": -88.9,
+  "state": "IL",
+  "region": "corn_belt",
+  "bbox": [
+   -88.902,
+   40.448,
+   -88.898,
+   40.452
+  ],
+  "existing_rotation": "soybean>corn",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "il_mclean_02",
+  "lat": 40.55,
+  "lon": -88.75,
+  "state": "IL",
+  "region": "corn_belt",
+  "bbox": [
+   -88.752,
+   40.548,
+   -88.748,
+   40.552
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "il_macon_02",
+  "lat": 39.75,
+  "lon": -88.8,
+  "state": "IL",
+  "region": "corn_belt",
+  "bbox": [
+   -88.802,
+   39.748,
+   -88.798,
+   39.752
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "il_henry_02",
+  "lat": 41.45,
+  "lon": -90.05,
+  "state": "IL",
+  "region": "corn_belt",
+  "bbox": [
+   -90.052,
+   41.448,
+   -90.048,
+   41.452
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "in_tippecanoe_02",
+  "lat": 40.3,
+  "lon": -86.8,
+  "state": "IN",
+  "region": "corn_belt",
+  "bbox": [
+   -86.802,
+   40.298,
+   -86.798,
+   40.302
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "in_carroll_02",
+  "lat": 40.7,
+  "lon": -86.5,
+  "state": "IN",
+  "region": "corn_belt",
+  "bbox": [
+   -86.502,
+   40.698,
+   -86.498,
+   40.702
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "in_rush_02",
+  "lat": 39.65,
+  "lon": -85.3,
+  "state": "IN",
+  "region": "corn_belt",
+  "bbox": [
+   -85.302,
+   39.648,
+   -85.298,
+   39.652
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "oh_darke_02",
+  "lat": 40.1,
+  "lon": -84.5,
+  "state": "OH",
+  "region": "corn_belt",
+  "bbox": [
+   -84.502,
+   40.098,
+   -84.498,
+   40.102
+  ],
+  "existing_rotation": "soybean>corn",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "oh_wood_01",
+  "lat": 41.35,
+  "lon": -83.6,
+  "state": "OH",
+  "region": "corn_belt",
+  "bbox": [
+   -83.602,
+   41.348,
+   -83.598,
+   41.352
+  ],
+  "existing_rotation": "soybean",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 141,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "oh_wood_02",
+  "lat": 41.3,
+  "lon": -83.75,
+  "state": "OH",
+  "region": "corn_belt",
+  "bbox": [
+   -83.752,
+   41.298,
+   -83.748,
+   41.302
+  ],
+  "existing_rotation": "soybean>winter_wheat",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "oh_fayette_02",
+  "lat": 39.5,
+  "lon": -83.6,
+  "state": "OH",
+  "region": "corn_belt",
+  "bbox": [
+   -83.602,
+   39.498,
+   -83.598,
+   39.502
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "mn_blue_earth_01",
+  "lat": 44.05,
+  "lon": -94.05,
+  "state": "MN",
+  "region": "corn_belt",
+  "bbox": [
+   -94.052,
+   44.048,
+   -94.048,
+   44.052
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 53,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "mn_blue_earth_02",
+  "lat": 44.15,
+  "lon": -94.2,
+  "state": "MN",
+  "region": "corn_belt",
+  "bbox": [
+   -94.202,
+   44.148,
+   -94.198,
+   44.152
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "mn_stearns_01",
+  "lat": 45.55,
+  "lon": -94.6,
+  "state": "MN",
+  "region": "corn_belt",
+  "bbox": [
+   -94.602,
+   45.548,
+   -94.598,
+   45.552
+  ],
+  "existing_rotation": "soybean>corn>corn",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt"
+ },
+ {
+  "area_id": "mn_stearns_02",
+  "lat": 45.45,
+  "lon": -94.75,
+  "state": "MN",
+  "region": "corn_belt",
+  "bbox": [
+   -94.752,
+   45.448,
+   -94.748,
+   45.452
+  ],
+  "existing_rotation": "alfalfa>alfalfa>corn",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "mn_redwood_01",
+  "lat": 44.4,
+  "lon": -95.2,
+  "state": "MN",
+  "region": "corn_belt",
+  "bbox": [
+   -95.202,
+   44.398,
+   -95.198,
+   44.402
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "ne_hamilton_01",
+  "lat": 40.78,
+  "lon": -98.0,
+  "state": "NE",
+  "region": "corn_belt",
+  "bbox": [
+   -98.002,
+   40.778,
+   -97.998,
+   40.782
+  ],
+  "existing_rotation": "corn",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ne_saunders_01",
+  "lat": 41.25,
+  "lon": -96.6,
+  "state": "NE",
+  "region": "corn_belt",
+  "bbox": [
+   -96.602,
+   41.248,
+   -96.598,
+   41.252
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ne_saunders_02",
+  "lat": 41.15,
+  "lon": -96.75,
+  "state": "NE",
+  "region": "corn_belt",
+  "bbox": [
+   -96.752,
+   41.148,
+   -96.748,
+   41.152
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "ne_buffalo_02",
+  "lat": 40.7,
+  "lon": -99.05,
+  "state": "NE",
+  "region": "corn_belt",
+  "bbox": [
+   -99.052,
+   40.698,
+   -99.048,
+   40.702
+  ],
+  "existing_rotation": "corn",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "sd_brookings_01",
+  "lat": 44.35,
+  "lon": -96.8,
+  "state": "SD",
+  "region": "corn_belt",
+  "bbox": [
+   -96.802,
+   44.348,
+   -96.798,
+   44.352
+  ],
+  "existing_rotation": "soybean",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 176,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 121,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "sd_brookings_02",
+  "lat": 44.25,
+  "lon": -96.95,
+  "state": "SD",
+  "region": "corn_belt",
+  "bbox": [
+   -96.952,
+   44.248,
+   -96.948,
+   44.252
+  ],
+  "existing_rotation": "corn",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "sd_minnehaha_02",
+  "lat": 43.75,
+  "lon": -96.6,
+  "state": "SD",
+  "region": "corn_belt",
+  "bbox": [
+   -96.602,
+   43.748,
+   -96.598,
+   43.752
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "ks_pratt_stafford_01",
+  "lat": 37.9,
+  "lon": -98.2,
+  "state": "KS",
+  "region": "great_plains",
+  "bbox": [
+   -98.202,
+   37.898,
+   -98.198,
+   37.902
+  ],
+  "existing_rotation": "soybean>corn",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   }
+  ],
+  "soil_texture": "sandy_loam"
+ },
+ {
+  "area_id": "ks_sumner_01",
+  "lat": 37.35,
+  "lon": -97.4,
+  "state": "KS",
+  "region": "great_plains",
+  "bbox": [
+   -97.402,
+   37.348,
+   -97.398,
+   37.352
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ks_sumner_02",
+  "lat": 37.25,
+  "lon": -97.25,
+  "state": "KS",
+  "region": "great_plains",
+  "bbox": [
+   -97.252,
+   37.248,
+   -97.248,
+   37.252
+  ],
+  "existing_rotation": "cotton>soybean",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ks_finney_01",
+  "lat": 38.05,
+  "lon": -100.8,
+  "state": "KS",
+  "region": "great_plains",
+  "bbox": [
+   -100.802,
+   38.048,
+   -100.798,
+   38.052
+  ],
+  "existing_rotation": "fallow>winter_wheat>sorghum",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ks_finney_02",
+  "lat": 37.95,
+  "lon": -100.95,
+  "state": "KS",
+  "region": "great_plains",
+  "bbox": [
+   -100.952,
+   37.948,
+   -100.948,
+   37.952
+  ],
+  "existing_rotation": "alfalfa",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 205,
+    "crop_key": NaN
+   },
+   {
+    "year": 2018,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   }
+  ],
+  "soil_texture": "sand"
+ },
+ {
+  "area_id": "ks_ford_02",
+  "lat": 37.6,
+  "lon": -100.05,
+  "state": "KS",
+  "region": "great_plains",
+  "bbox": [
+   -100.052,
+   37.598,
+   -100.048,
+   37.602
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 236,
+    "crop_key": "winter_wheat>sorghum"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ok_grant_02",
+  "lat": 36.65,
+  "lon": -97.9,
+  "state": "OK",
+  "region": "great_plains",
+  "bbox": [
+   -97.902,
+   36.648,
+   -97.898,
+   36.652
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 31,
+    "crop_key": NaN
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 6,
+    "crop_key": "sunflower"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ok_texas_01",
+  "lat": 36.65,
+  "lon": -101.45,
+  "state": "OK",
+  "region": "great_plains",
+  "bbox": [
+   -101.452,
+   36.648,
+   -101.448,
+   36.652
+  ],
+  "existing_rotation": "winter_wheat>sorghum",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 236,
+    "crop_key": "winter_wheat>sorghum"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 176,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   }
+  ],
+  "soil_texture": "clay_loam"
+ },
+ {
+  "area_id": "tx_hansford_01",
+  "lat": 36.25,
+  "lon": -101.35,
+  "state": "TX",
+  "region": "great_plains",
+  "bbox": [
+   -101.352,
+   36.248,
+   -101.348,
+   36.252
+  ],
+  "existing_rotation": "corn",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 152,
+    "crop_key": NaN
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "tx_hansford_02",
+  "lat": 36.2,
+  "lon": -101.5,
+  "state": "TX",
+  "region": "great_plains",
+  "bbox": [
+   -101.502,
+   36.198,
+   -101.498,
+   36.202
+  ],
+  "existing_rotation": "cotton>corn>cotton",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 176,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "tx_castro_02",
+  "lat": 34.45,
+  "lon": -102.4,
+  "state": "TX",
+  "region": "great_plains",
+  "bbox": [
+   -102.402,
+   34.448,
+   -102.398,
+   34.452
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "co_yuma_01",
+  "lat": 40.05,
+  "lon": -102.55,
+  "state": "CO",
+  "region": "great_plains",
+  "bbox": [
+   -102.552,
+   40.048,
+   -102.548,
+   40.052
+  ],
+  "existing_rotation": "alfalfa",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   }
+  ],
+  "soil_texture": "loamy_sand"
+ },
+ {
+  "area_id": "co_weld_01",
+  "lat": 40.4,
+  "lon": -104.5,
+  "state": "CO",
+  "region": "great_plains",
+  "bbox": [
+   -104.502,
+   40.398,
+   -104.498,
+   40.402
+  ],
+  "existing_rotation": "corn",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 205,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "nd_cass_01",
+  "lat": 46.9,
+  "lon": -97.3,
+  "state": "ND",
+  "region": "great_plains",
+  "bbox": [
+   -97.302,
+   46.898,
+   -97.298,
+   46.902
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay"
+ },
+ {
+  "area_id": "nd_cass_02",
+  "lat": 46.8,
+  "lon": -97.15,
+  "state": "ND",
+  "region": "great_plains",
+  "bbox": [
+   -97.152,
+   46.798,
+   -97.148,
+   46.802
+  ],
+  "existing_rotation": "corn>soybean>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silty_clay"
+ },
+ {
+  "area_id": "mt_hill_01",
+  "lat": 48.6,
+  "lon": -110.2,
+  "state": "MT",
+  "region": "great_plains",
+  "bbox": [
+   -110.202,
+   48.598,
+   -110.198,
+   48.602
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 176,
+    "crop_key": NaN
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 176,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "mt_hill_02",
+  "lat": 48.5,
+  "lon": -110.35,
+  "state": "MT",
+  "region": "great_plains",
+  "bbox": [
+   -110.352,
+   48.498,
+   -110.348,
+   48.502
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 176,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "ms_bolivar_01",
+  "lat": 33.75,
+  "lon": -90.85,
+  "state": "MS",
+  "region": "delta_southeast",
+  "bbox": [
+   -90.852,
+   33.748,
+   -90.848,
+   33.752
+  ],
+  "existing_rotation": "soybean",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 3,
+    "crop_key": NaN
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "clay"
+ },
+ {
+  "area_id": "ms_bolivar_02",
+  "lat": 33.65,
+  "lon": -90.7,
+  "state": "MS",
+  "region": "delta_southeast",
+  "bbox": [
+   -90.702,
+   33.648,
+   -90.698,
+   33.652
+  ],
+  "existing_rotation": "soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "clay"
+ },
+ {
+  "area_id": "ar_poinsett_02",
+  "lat": 35.45,
+  "lon": -90.55,
+  "state": "AR",
+  "region": "delta_southeast",
+  "bbox": [
+   -90.552,
+   35.448,
+   -90.548,
+   35.452
+  ],
+  "existing_rotation": "soybean",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   }
+  ],
+  "soil_texture": "clay"
+ },
+ {
+  "area_id": "ar_arkansas_01",
+  "lat": 34.35,
+  "lon": -91.35,
+  "state": "AR",
+  "region": "delta_southeast",
+  "bbox": [
+   -91.352,
+   34.348,
+   -91.348,
+   34.352
+  ],
+  "existing_rotation": "corn>soybean>soybean",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 3,
+    "crop_key": NaN
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 3,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "la_tensas_01",
+  "lat": 32.1,
+  "lon": -91.2,
+  "state": "LA",
+  "region": "delta_southeast",
+  "bbox": [
+   -91.202,
+   32.098,
+   -91.198,
+   32.102
+  ],
+  "existing_rotation": "corn",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "la_madison_01",
+  "lat": 32.4,
+  "lon": -91.15,
+  "state": "LA",
+  "region": "delta_southeast",
+  "bbox": [
+   -91.152,
+   32.398,
+   -91.148,
+   32.402
+  ],
+  "existing_rotation": "soybean",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "clay"
+ },
+ {
+  "area_id": "ga_dooly_01",
+  "lat": 32.15,
+  "lon": -83.8,
+  "state": "GA",
+  "region": "delta_southeast",
+  "bbox": [
+   -83.802,
+   32.148,
+   -83.798,
+   32.152
+  ],
+  "existing_rotation": null,
+  "rotation_confidence": 0.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2016,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2017,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2018,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2019,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2020,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2021,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2022,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2023,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2024,
+    "cdl_code": 74,
+    "crop_key": null
+   },
+   {
+    "year": 2025,
+    "cdl_code": 74,
+    "crop_key": null
+   }
+  ],
+  "soil_texture": "sandy_loam"
+ },
+ {
+  "area_id": "ca_fresno_01",
+  "lat": 36.5,
+  "lon": -120.1,
+  "state": "CA",
+  "region": "central_valley",
+  "bbox": [
+   -120.102,
+   36.498,
+   -120.098,
+   36.502
+  ],
+  "existing_rotation": "sorghum>winter_wheat>winter_wheat",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 236,
+    "crop_key": "winter_wheat>sorghum"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "clay"
+ },
+ {
+  "area_id": "ca_fresno_02",
+  "lat": 36.4,
+  "lon": -119.9,
+  "state": "CA",
+  "region": "central_valley",
+  "bbox": [
+   -119.902,
+   36.398,
+   -119.898,
+   36.402
+  ],
+  "existing_rotation": "alfalfa>alfalfa>corn",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 225,
+    "crop_key": "winter_wheat>corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 228,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 205,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 205,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "sandy_loam"
+ },
+ {
+  "area_id": "ca_fresno_03",
+  "lat": 36.6,
+  "lon": -120.25,
+  "state": "CA",
+  "region": "central_valley",
+  "bbox": [
+   -120.252,
+   36.598,
+   -120.248,
+   36.602
+  ],
+  "existing_rotation": "alfalfa",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 121,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   }
+  ],
+  "soil_texture": "clay"
+ },
+ {
+  "area_id": "ca_san_joaquin_02",
+  "lat": 37.85,
+  "lon": -121.4,
+  "state": "CA",
+  "region": "central_valley",
+  "bbox": [
+   -121.402,
+   37.848,
+   -121.398,
+   37.852
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2016,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2019,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2020,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 54,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ },
+ {
+  "area_id": "ca_colusa_02",
+  "lat": 39.15,
+  "lon": -121.95,
+  "state": "CA",
+  "region": "central_valley",
+  "bbox": [
+   -121.952,
+   39.148,
+   -121.948,
+   39.152
+  ],
+  "existing_rotation": null,
+  "rotation_confidence": 0.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2018,
+    "cdl_code": 48,
+    "crop_key": NaN
+   },
+   {
+    "year": 2019,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2021,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2022,
+    "cdl_code": 222,
+    "crop_key": NaN
+   },
+   {
+    "year": 2023,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2024,
+    "cdl_code": 54,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 48,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "wa_whitman_01",
+  "lat": 46.85,
+  "lon": -117.5,
+  "state": "WA",
+  "region": "pacific_nw",
+  "bbox": [
+   -117.502,
+   46.848,
+   -117.498,
+   46.852
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "wa_whitman_02",
+  "lat": 46.75,
+  "lon": -117.35,
+  "state": "WA",
+  "region": "pacific_nw",
+  "bbox": [
+   -117.352,
+   46.748,
+   -117.348,
+   46.752
+  ],
+  "existing_rotation": "winter_wheat>chickpea>winter_wheat",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2019,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 51,
+    "crop_key": "chickpea"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 23,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 176,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "wa_walla_walla_02",
+  "lat": 46.0,
+  "lon": -118.35,
+  "state": "WA",
+  "region": "pacific_nw",
+  "bbox": [
+   -118.352,
+   45.998,
+   -118.348,
+   46.002
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 53,
+    "crop_key": NaN
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 53,
+    "crop_key": NaN
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 53,
+    "crop_key": NaN
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 53,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "or_morrow_01",
+  "lat": 45.65,
+  "lon": -119.6,
+  "state": "OR",
+  "region": "pacific_nw",
+  "bbox": [
+   -119.602,
+   45.648,
+   -119.598,
+   45.652
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 43,
+    "crop_key": NaN
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 43,
+    "crop_key": NaN
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 43,
+    "crop_key": NaN
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 43,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "sandy_loam"
+ },
+ {
+  "area_id": "mo_audrain_01",
+  "lat": 39.2,
+  "lon": -91.85,
+  "state": "MO",
+  "region": "corn_belt",
+  "bbox": [
+   -91.852,
+   39.198,
+   -91.848,
+   39.202
+  ],
+  "existing_rotation": "corn>soybean",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "mo_audrain_02",
+  "lat": 39.15,
+  "lon": -91.7,
+  "state": "MO",
+  "region": "corn_belt",
+  "bbox": [
+   -91.702,
+   39.148,
+   -91.698,
+   39.152
+  ],
+  "existing_rotation": "corn>soybean>soybean",
+  "rotation_confidence": 1.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "wi_dodge_02",
+  "lat": 43.6,
+  "lon": -88.75,
+  "state": "WI",
+  "region": "corn_belt",
+  "bbox": [
+   -88.752,
+   43.598,
+   -88.748,
+   43.602
+  ],
+  "existing_rotation": "alfalfa",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 36,
+    "crop_key": "alfalfa"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 176,
+    "crop_key": NaN
+   },
+   {
+    "year": 2025,
+    "cdl_code": 37,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "mi_huron_01",
+  "lat": 43.8,
+  "lon": -83.05,
+  "state": "MI",
+  "region": "corn_belt",
+  "bbox": [
+   -83.052,
+   43.798,
+   -83.048,
+   43.802
+  ],
+  "existing_rotation": "corn",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "mi_huron_02",
+  "lat": 43.7,
+  "lon": -82.95,
+  "state": "MI",
+  "region": "corn_belt",
+  "bbox": [
+   -82.952,
+   43.698,
+   -82.948,
+   43.702
+  ],
+  "existing_rotation": null,
+  "rotation_confidence": 0.0,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 41,
+    "crop_key": NaN
+   },
+   {
+    "year": 2017,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2018,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 41,
+    "crop_key": NaN
+   },
+   {
+    "year": 2020,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2021,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 41,
+    "crop_key": NaN
+   },
+   {
+    "year": 2023,
+    "cdl_code": 42,
+    "crop_key": NaN
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 41,
+    "crop_key": NaN
+   }
+  ],
+  "soil_texture": "sandy_loam"
+ },
+ {
+  "area_id": "tn_haywood_01",
+  "lat": 35.6,
+  "lon": -89.3,
+  "state": "TN",
+  "region": "delta_southeast",
+  "bbox": [
+   -89.302,
+   35.598,
+   -89.298,
+   35.602
+  ],
+  "existing_rotation": "cotton",
+  "rotation_confidence": 0.25,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 2,
+    "crop_key": "cotton"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   }
+  ],
+  "soil_texture": "silt_loam"
+ },
+ {
+  "area_id": "ne_perkins_01",
+  "lat": 40.85,
+  "lon": -101.6,
+  "state": "NE",
+  "region": "corn_belt",
+  "bbox": [
+   -101.602,
+   40.848,
+   -101.598,
+   40.852
+  ],
+  "existing_rotation": "corn>corn>winter_wheat",
+  "rotation_confidence": 0.833,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   }
+  ],
+  "soil_texture": "loamy_sand"
+ },
+ {
+  "area_id": "ne_perkins_02",
+  "lat": 40.95,
+  "lon": -101.75,
+  "state": "NE",
+  "region": "corn_belt",
+  "bbox": [
+   -101.752,
+   40.948,
+   -101.748,
+   40.952
+  ],
+  "existing_rotation": "corn>fallow>winter_wheat",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 61,
+    "crop_key": "fallow"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 1,
+    "crop_key": "corn"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 4,
+    "crop_key": "sorghum"
+   }
+  ],
+  "soil_texture": "loam"
+ },
+ {
+  "area_id": "ks_dickinson_01",
+  "lat": 38.8,
+  "lon": -97.2,
+  "state": "KS",
+  "region": "great_plains",
+  "bbox": [
+   -97.202,
+   38.798,
+   -97.198,
+   38.802
+  ],
+  "existing_rotation": "winter_wheat",
+  "rotation_confidence": 0.333,
+  "crop_history": [
+   {
+    "year": 2015,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2016,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2017,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2018,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2019,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2020,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2021,
+    "cdl_code": 26,
+    "crop_key": "winter_wheat>soybean"
+   },
+   {
+    "year": 2022,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2023,
+    "cdl_code": 5,
+    "crop_key": "soybean"
+   },
+   {
+    "year": 2024,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   },
+   {
+    "year": 2025,
+    "cdl_code": 24,
+    "crop_key": "winter_wheat"
+   }
+  ],
+  "soil_texture": "silty_clay_loam"
+ }
+]
