@@ -27,7 +27,10 @@
 
 ## Model / vLLM ayarları (öneri)
 - Nicemlenmiş model: AWQ/GPTQ 4-bit (~5 GB) veya FP8 (~8 GB). fp16 7B KV cache'e yer bırakmaz.
-- Aday modeller: Qwen2.5-7B-Instruct (AWQ), Qwen3-8B (tool calling'de iyi).
+- **Seçilen model: `Qwen/Qwen3-8B-FP8`** (~9 GB, RTX 5060 Ti FP8'i donanımda destekler). Qwen2.5-7B-Instruct-AWQ ile denendi, Türkçe cevapları uydurma/karışıktı; Qwen3-8B belirgin şekilde daha iyi çıktı.
+- Qwen3 varsayılan olarak "düşünme modu" açık gelir (gecikme ve token artar). Backend her istekte `chat_template_kwargs: {"enable_thinking": false}` göndermeli.
+- Test sonucu: `hermes` tool-call parser'ı ile tool calling çalışıyor (model `get_risk_summary` tool'unu doğru argümanlarla çağırdı, `finish_reason: tool_calls`).
+- Alternatifler (denenmedi): Qwen3.5-9B (16 GB'a nicemlenmiş sürümü gerekir, parser ayarı riskli), Granite 4.2 8B, Ministral 3 8B. Türkçe için güncel bir benchmark sıralaması bulunamadı.
 - `--enable-prefix-caching`: her ajanın system promptu otomatik cache'lenir.
 - `--enable-auto-tool-choice --tool-call-parser hermes`: tool calling için.
 - `--gpu-memory-utilization 0.90`.
@@ -67,9 +70,13 @@
 - Her yeni terminalde önce: `source ~/vllm-env/bin/activate` (prompt'ta `(vllm-env)` görünmeli).
 - Başlatma betiği: `~/Masaüstü/vllm/vllm_serve.sh` (repodaki kopya: `backend/scripts/vllm_serve.sh`).
 - API key `~/.vllm_api_key` dosyasında; yoksa betik üretir. Yenilemek için dosyayı silip betiği tekrar çalıştırmak yeterli.
-- Adres: `http://192.168.1.10:8000/v1` (yerel ağ IP'si, değişebilir). Model: `Qwen/Qwen2.5-7B-Instruct-AWQ`.
+- Donanım: NVIDIA GeForce RTX 5060 Ti, 16 GB VRAM. Model: `Qwen/Qwen3-8B-FP8`.
+- Adres: Tailscale üzerinden `100.96.165.43` (makine adı `archlinux`), port 8000. Yerel ağ IP'si `192.168.1.10` backend makinesinden erişilemez (farklı ağ).
+- **Şu an doğrudan `http://100.96.165.43:8000` zaman aşımına düşüyor** (ACL "her şeye izin" ve Tailscale `ShieldsUp` kapalı; sunucu yerelde 401 veriyor). Neden olarak sunucudaki çıplak nft/iptables kuralları şüpheli, henüz doğrulanmadı.
+- Geçici çözüm: SSH tüneli, `ssh -N -L 127.0.0.1:18000:127.0.0.1:8000 nasko@100.96.165.43`; backend `http://127.0.0.1:18000/v1` kullanır.
+- Betik modeli başlatmadan önce `hf download` ile indirir; ilk açılışta ~9 GB iner ve FlashInfer kernel derlemesi birkaç dakika sürebilir (sonra önbellekten hızlı açılır).
 - Test: `curl http://<IP>:8000/v1/models -H "Authorization: Bearer <KEY>"`.
-- Kurulum durumu: vLLM'in `~/vllm-env` içine kurulduğu (`uv pip install vllm`, `vllm --version`) henüz doğrulanmadı.
+- Kurulum durumu: vLLM 0.33.0 `~/vllm-env` içine kuruldu ve çalışıyor (doğrulandı: key'siz/yanlış key `401`, doğru key ile sohbet ve tool calling çalıştı).
 
 ### Tuzaklar
 - Sistem Python'u 3.14 (çok yeni, vLLM desteklemeyebilir) ve Arch'ta "externally managed". `--break-system-packages` kullanma; her zaman venv.
@@ -84,4 +91,5 @@
 - ML verisinin formatı ve boyutu (GeoJSON, raster, tablo?).
 - Ajan modu: tartışma mı, kullanıcı seçimi mi?
 - Web çerçevesi (FastAPI önerildi, karar verilmedi).
-- Kesin model seçimi.
+- Doğrudan Tailscale erişiminin (port 8000) neden zaman aşımına düştüğü (sunucuda `sudo nft list ruleset` kontrol edilecek).
+- Türkçe kalitesi gerçek ML verisi ve system prompt'larla yeniden ölçülmeli (şu an tek bir test sorusu var).

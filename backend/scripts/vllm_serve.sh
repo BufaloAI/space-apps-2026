@@ -2,7 +2,7 @@
 # vLLM sunucusunu API key ile başlatır. Key yoksa üretir.
 set -euo pipefail
 
-MODEL="${MODEL:-Qwen/Qwen2.5-7B-Instruct-AWQ}"
+MODEL="${MODEL:-Qwen/Qwen3-8B-FP8}"
 PORT="${PORT:-8000}"
 KEY_FILE="${KEY_FILE:-$HOME/.vllm_api_key}"
 
@@ -19,10 +19,15 @@ echo "URL     : http://${IP:-<IP>}:$PORT/v1"
 echo "Model   : $MODEL"
 echo "=========================================="
 
+# Modeli önce indir (önbellekte varsa hemen geçer). Başarısız olursa vLLM kendisi indirmeyi dener.
+if command -v hf >/dev/null 2>&1; then
+  echo ">> Model indiriliyor/kontrol ediliyor: $MODEL"
+  hf download "$MODEL" || echo "UYARI: hf download başarısız, vLLM kendisi indirmeyi deneyecek."
+fi
+
 exec vllm serve "$MODEL" \
   --host 0.0.0.0 \
   --port "$PORT" \
-  --dtype float16 \
   --max-model-len 16384 \
   --gpu-memory-utilization 0.90 \
   --enable-prefix-caching \
