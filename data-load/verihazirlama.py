@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import xarray as xr
 
-def prepare_clean_daily_data(input_dir="./smap_verileri", output_file="field_shift_optimized_features.csv"):
+def prepare_clean_daily_data(input_dir="/home/nasko/Projeler/smap-verileri", output_file="field_shift_optimized_features.csv"):
     """
     NASA Earthdata ham dosyalarını işler:
     - Konum bilgisi (lat/lon) olmayanları kesinlikle eler (Asla uydurma veri üretmez).

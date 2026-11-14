@@ -11,7 +11,7 @@ def nasa_verilerini_indir():
         return
 
     # Hedef klasörü oluştur
-    output_dir = "./smap_verileri"
+    output_dir = "../smap_verileri"
     os.makedirs(output_dir, exist_ok=True)
 
     print("NASA SMAP L4 verileri aranıyor...")
