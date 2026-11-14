@@ -12,9 +12,10 @@ if [ ! -s "$KEY_FILE" ]; then
 fi
 export VLLM_API_KEY="$(cat "$KEY_FILE")"   # komut satırında görünmesin diye env ile veriyoruz
 
-echo "=========================================="
-echo "API key : $VLLM_API_KEY"
 IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')"
+echo "=========================================="
+# Key yalnızca terminalde gösterilir; servis (systemd) olarak çalışınca günlüğe (journal) yazılmaz.
+if [ -t 1 ]; then echo "API key : $VLLM_API_KEY"; else echo "API key : (gizli; ~/.vllm_api_key dosyasında)"; fi
 echo "URL     : http://${IP:-<IP>}:$PORT/v1"
 echo "Model   : $MODEL"
 echo "=========================================="

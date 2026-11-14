@@ -22,6 +22,9 @@ class Settings:
     temperature: float
     history_max_messages: int
     cors_origins: list[str]
+    max_area_ha: float
+    agents_file: Path
+    ml_fake_delay_seconds: float
 
 
 def cors_origins() -> list[str]:
@@ -46,4 +49,7 @@ def load_settings() -> Settings:
         temperature=float(os.environ.get("TEMPERATURE", "0.4")),
         history_max_messages=int(os.environ.get("HISTORY_MAX_MESSAGES", "20")),
         cors_origins=cors_origins(),
+        max_area_ha=float(os.environ.get("MAX_AREA_HA", "5000")),
+        agents_file=Path(os.environ.get("AGENTS_FILE", str(Path(__file__).resolve().parents[1] / "agents.toml"))),
+        ml_fake_delay_seconds=float(os.environ.get("ML_FAKE_DELAY_SECONDS", "2")),
     )

@@ -1,4 +1,4 @@
-from app.sessions import SessionManager
+from app.sessions import Job, SessionManager
 
 
 class Clock:
@@ -99,12 +99,23 @@ def test_polling_keeps_queued_user_alive():
         assert m.status(b.id)["status"] == "queued"
 
 
-def test_history_is_cleared_when_session_ends():
+def test_agent_history_and_job_are_cleared_when_session_ends():
     m, _ = make()
     a = m.join()
-    a.history.append({"role": "user", "content": "merhaba"})
+    a.agent_history["a"] = [{"role": "user", "content": "merhaba"}]
+    a.job = Job("j1", "analysis")
+    job = a.job
     m.leave(a.id)
-    assert a.history == []
+    assert a.agent_history == {} and a.job is None and a.analysis is None
+    assert job.cancelled and job.finished
+
+
+def test_status_reports_job_and_analysis_flags():
+    m, _ = make()
+    a = m.join()
+    assert m.status(a.id)["job_id"] is None and m.status(a.id)["has_analysis"] is False
+    a.job = Job("j1", "analysis")
+    assert m.status(a.id)["job_id"] == "j1"
 
 
 def test_unknown_session():

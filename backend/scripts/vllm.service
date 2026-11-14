@@ -1,0 +1,25 @@
+[Unit]
+Description=vLLM API sunucusu (Qwen3-8B-FP8)
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/home/nasko/vllm-env/bin/vllm
+
+[Service]
+Type=simple
+User=nasko
+Group=nasko
+WorkingDirectory=/home/nasko/Masaüstü/vllm
+# vLLM'in bulunduğu Python ortamı (venv'i "activate" etmeden çalışsın diye)
+Environment=PATH=/home/nasko/vllm-env/bin:/usr/local/bin:/usr/bin:/bin
+# Model önbellekte hazır: açılışta internet/Hugging Face beklemesin. Başka bir model denenecekse
+# önce elle (internetle) indirilmeli, ya da bu satır geçici olarak kaldırılmalı.
+Environment=HF_HUB_OFFLINE=1
+# Betik key'i terminalde basar, serviste günlüğe yazmaz; key ~/.vllm_api_key dosyasındadır.
+ExecStart=/home/nasko/Masaüstü/vllm/vllm_serve.sh
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=60
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
