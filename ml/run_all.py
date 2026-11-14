@@ -272,21 +272,49 @@ def appeears_smoke(ctx: Ctx, areas: Path) -> bool:
             elif len(v):
                 ctx.note("appeears", OK, f"biçim kontrolü: {var} {v.min():.2f}..{v.max():.2f} doğru")
     if problems:
-        ctx.note("appeears", FAIL, "AppEEARS deneme/biçim kontrolü başarısız: " + "; ".join(problems))
-        ctx.todo.append("AppEEARS biçimi doğrulanamadı; tam indirme yapılmadı. ml/cache/logs/appeears_smoke.log "
-                        "dosyasını (içinde şifre yok) Claude'a gönderin. AppEEARS girişi 504 veriyorsa NASA tarafında "
-                        "kesinti vardır, sonra tekrar deneyin: uv run python -m ml.run_all --only appeears,build,train,verify")
+        log = (LOGS / "appeears_smoke.log").read_text(errors="replace") if (LOGS / "appeears_smoke.log").exists() else ""
+        outage = "504" in log or "502" in log or "503" in log or "login" in log.lower() and "giving up" in log
+        ctx.note("appeears", WARN if outage else FAIL, "AppEEARS kullanılamadı: " + "; ".join(problems)
+                 + (" (sunucu/giriş kesintisi)" if outage else ""))
+        if outage:
+            ctx.todo.append("AppEEARS kesintisi bitince SMAP/LST/ET/Aqua NDVI için tekrar: "
+                            "uv run python -m ml.run_all --only appeears,build,train,verify")
+        else:
+            ctx.todo.append("AppEEARS biçimi beklenenden farklı; ml/cache/logs/appeears_smoke.log dosyasını "
+                            "(içinde şifre yok) Claude'a gönderin")
         return False
     ctx.state["appeears_smoke_ok"] = True
     ctx.save()
     return True
 
 
+def ornl_ndvi_fallback(ctx: Ctx, areas: Path, want: set[str]) -> bool:
+    """AppEEARS yoksa NDVI'yı ORNL MODIS servisinden çeker (yavaş ama girişsiz). Yalnızca NDVI gelir."""
+    have = set(raw_coverage("MOD13Q1", "NDVI"))
+    if want <= have:
+        ctx.note("appeears", OK, f"yedek: NDVI (ORNL) zaten {len(want)} tarlada var")
+        return True
+    ctx.note("appeears", WARN, f"yedek: NDVI ORNL'den çekiliyor ({len(want - have)} tarla; yavaş, ~1 sa+)")
+    for attempt in (1, 2):  # ORNL bazı istekleri düşürür; ikinci tur yalnızca eksikleri dener
+        miss = sorted(want - set(raw_coverage("MOD13Q1", "NDVI")))
+        if not miss:
+            break
+        sub = CACHE / "areas_ornl_missing.json"
+        sub.write_text(json.dumps([a for a in json.loads(areas.read_text()) if a["area_id"] in miss]))
+        run_cmd(ctx, "ornl_ndvi", ["ml.data_load.download", "--areas", str(sub), "--start", ctx.a.start, "--end",
+                                   ctx.a.end, "--out", str(RAW), "--sources", "modis", "--workers", "2"])
+    got = want & set(raw_coverage("MOD13Q1", "NDVI"))
+    ctx.note("appeears", OK if got == want else (WARN if got else FAIL), f"yedek NDVI (ORNL): {len(got)}/{len(want)} tarla")
+    if got != want:
+        ctx.todo.append("Bazı tarlalarda NDVI eksik; tekrar denemek için: uv run python -m ml.run_all --only appeears,build,train,verify")
+    return bool(got)
+
+
 def step_appeears(ctx: Ctx) -> bool:
     areas = limited_areas(ctx)
     want = set(area_ids(areas))
     if not appeears_smoke(ctx, areas):
-        return False
+        return ornl_ndvi_fallback(ctx, areas, want)
     ndvi = set(raw_coverage("MOD13Q1", "NDVI")) | set(raw_coverage("MYD13Q1", "NDVI"))
     if want <= ndvi and (STATIC / "elevation.parquet").exists() and not ctx.force("appeears"):
         ctx.note("appeears", OK, f"NDVI tüm {len(want)} tarlada var")
