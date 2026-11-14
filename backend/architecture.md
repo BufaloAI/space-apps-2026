@@ -72,8 +72,12 @@
 - API key `~/.vllm_api_key` dosyasında; yoksa betik üretir. Yenilemek için dosyayı silip betiği tekrar çalıştırmak yeterli.
 - Donanım: NVIDIA GeForce RTX 5060 Ti, 16 GB VRAM. Model: `Qwen/Qwen3-8B-FP8`.
 - Adres: Tailscale üzerinden `100.96.165.43` (makine adı `archlinux`), port 8000. Yerel ağ IP'si `192.168.1.10` backend makinesinden erişilemez (farklı ağ).
-- **Şu an doğrudan `http://100.96.165.43:8000` zaman aşımına düşüyor** (ACL "her şeye izin" ve Tailscale `ShieldsUp` kapalı; sunucu yerelde 401 veriyor). Neden olarak sunucudaki çıplak nft/iptables kuralları şüpheli, henüz doğrulanmadı.
-- Geçici çözüm: SSH tüneli, `ssh -N -L 127.0.0.1:18000:127.0.0.1:8000 nasko@100.96.165.43`; backend `http://127.0.0.1:18000/v1` kullanır.
+- Backend doğrudan `http://100.96.165.43:8000/v1` adresine bağlanır (doğrulandı: key'siz `401`, key'li sohbet ~1.2 sn). SSH tüneline gerek yok.
+- **Erişimi bozan 3 engel (ve çözümü):** (1) sunucuda `inet filter` `input` zinciri `policy drop` ve 8000'e izin yok; (2) Cloudflare WARP'ın nft tablosu `100.64.0.0/12` ve `100.96.0.0/12` kaynak/hedeflerini düşürüyor (backend'in Tailscale adresi `100.108.49.44` bu aralıkta); (3) WARP'ın yönlendirme kuralı (öncelik 5209) Tailscale'inkinden (5270) önce geldiği için sunucunun cevapları `CloudflareWARP` tüneline gidiyor. WARP "include" modunda ve `Allow Mode Switch: false` olduğundan Tailscale aralığı CLI'dan hariç tutulamıyor.
+- **Çözüm:** `ip rule add to 100.64.0.0/10 lookup 52 priority 5200` (Tailscale adresleri önce Tailscale tablosuna baksın) + üç nft kuralı (yalnızca `tailscale0` arayüzünden, yalnızca port 8000). Bunları uygulayan idempotent betik: `backend/scripts/vllm-tailscale-fix.sh`, `systemd` zamanlayıcısı ile 30 sn'de bir çalışır (WARP yeniden bağlanınca nft tablosunu sıfırladığı için tek seferlik servis yetmez).
+- Kurulum (sunucuda, sudo): `sudo install -m 755 vllm-tailscale-fix.sh /usr/local/bin/ && sudo install -m 644 vllm-tailscale-fix.{service,timer} /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now vllm-tailscale-fix.timer`.
+- Tanı ipucu: bağlantı yine kopuk görünürse sunucuda `ip route get 100.108.49.44` çıktısı `dev tailscale0` olmalı; `CloudflareWARP` yazıyorsa 5200 numaralı kural kaybolmuştur. `sudo tcpdump -ni tailscale0 tcp port 8000` ile SYN gelip SYN-ACK gitmiyorsa da aynı sorun.
+- Geri alma: `sudo ip rule del to 100.64.0.0/10 lookup 52 priority 5200` ve `sudo systemctl disable --now vllm-tailscale-fix.timer`.
 - Betik modeli başlatmadan önce `hf download` ile indirir; ilk açılışta ~9 GB iner ve FlashInfer kernel derlemesi birkaç dakika sürebilir (sonra önbellekten hızlı açılır).
 - Test: `curl http://<IP>:8000/v1/models -H "Authorization: Bearer <KEY>"`.
 - Kurulum durumu: vLLM 0.33.0 `~/vllm-env` içine kuruldu ve çalışıyor (doğrulandı: key'siz/yanlış key `401`, doğru key ile sohbet ve tool calling çalıştı).
@@ -81,8 +85,17 @@
 ### Tuzaklar
 - Sistem Python'u 3.14 (çok yeni, vLLM desteklemeyebilir) ve Arch'ta "externally managed". `--break-system-packages` kullanma; her zaman venv.
 - `~/Masaüstü/vllm/.venv` eski/kullanılmayan bir ortam (3.14). vLLM için `~/vllm-env` kullanılır.
+- Sunucuda Cloudflare WARP açıkken Tailscale (`100.64.0.0/10`) ile çakışır: WARP kendi iç adres aralığını (`100.96.0.0/12`) kullanır. Yeni bir port açılacaksa aynı engeller (nft + yönlendirme) tekrar çıkar; `vllm-tailscale-fix.sh` içindeki `PORT`'u kullan.
 - Sunucu `0.0.0.0`'da dinler; yalnızca güvenilir ağda kullanılmalı, internete açılırsa HTTPS (reverse proxy) veya güvenlik duvarı gerekir.
 - API key'i sohbete, repoya veya commit'e yazma. Bir kez sohbette paylaşıldıysa yenile.
+
+## Uygulama durumu (backend/app)
+- Çerçeve: FastAPI + uvicorn (tek worker). Dosyalar: `config.py` (ayarlar, `backend/.env`), `llm.py` (vLLM istemcisi, `enable_thinking: false`), `sessions.py` (tek slot + FIFO sıra), `main.py` (API).
+- Çalıştırma (repo kökünden): `uv run uvicorn app.main:app --app-dir backend --port 8001 --workers 1`. Önce `backend/.env.example` dosyasını `backend/.env` olarak kopyalayıp `VLLM_API_KEY` doldurulmalı; key yoksa uygulama açılışta hata verir.
+- Testler: `uv run pytest` (17 test: oturum mantığı + API, sahte model ile). Gerçek vLLM ile de elle denendi: iki kullanıcı, sıra, SSE akışı, sohbet geçmişi, slotun devri çalışıyor.
+- API: `POST /api/session` (aktif veya sıra no), `GET /api/session/{id}` (durum), `GET /api/session/{id}/events` (SSE, aktif/bitince kapanır), `POST /api/session/{id}/keepalive`, `DELETE /api/session/{id}`, `POST /api/chat` (SSE: `{"delta"}`, `{"done"}`, `{"error"}`), `GET /api/health`.
+- Oturum kuralları (uygulandı): aktif olmayan oturum sohbet edemez (409); aktif kullanıcı 5 dk boşta kalırsa slot devredilir, cevap üretilirken sayaç işlemez; sıradaki 30 sn hiç görünmezse sıradan düşer; oturum bitince geçmiş silinir. Geçmiş son 20 mesajla sınırlı, mesaj 4000 karakterle sınırlı. Model hatası kullanıcıya ayrıntı sızdırmadan genel mesajla döner.
+- Henüz yok: ajanlar/system prompt'lar (şu an tek genel prompt), ML adaptörü ve tool'lar, tarla poligonu + tarih girişi, kimlik doğrulama/rate limit.
 
 ## Açık sorular
 - ML gerçekten bu makinede mi çalışacak? Backend ona nasıl erişecek (Python çağrısı, API, dosya)?
@@ -91,5 +104,5 @@
 - ML verisinin formatı ve boyutu (GeoJSON, raster, tablo?).
 - Ajan modu: tartışma mı, kullanıcı seçimi mi?
 - Web çerçevesi (FastAPI önerildi, karar verilmedi).
-- Doğrudan Tailscale erişiminin (port 8000) neden zaman aşımına düştüğü (sunucuda `sudo nft list ruleset` kontrol edilecek).
+- `vllm-tailscale-fix` zamanlayıcısı sunucuya kuruldu ve doğrulandı: yönlendirme kuralı silinince 30 sn içinde geri geliyor, kopya oluşmuyor, doğrudan bağlantı çalışıyor. Henüz denenmeyenler: sunucu yeniden başlatma sonrası ve WARP yeniden bağlanma (`warp-cli disconnect && warp-cli connect`) sonrası bağlantı.
 - Türkçe kalitesi gerçek ML verisi ve system prompt'larla yeniden ölçülmeli (şu an tek bir test sorusu var).

@@ -1,0 +1,7 @@
+[Unit]
+Description=vLLM'e Tailscale erişimini WARP/nft engellerine karşı açık tut
+After=network-online.target tailscaled.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/vllm-tailscale-fix.sh

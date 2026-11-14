@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Gizli bilgiler (API key vb.) asla commit edilmez
+.env
+.env.*
+!.env.example
+
+# Loglar / geçici
+*.log
+.DS_Store
+
+# Frontend
+node_modules/
+dist/

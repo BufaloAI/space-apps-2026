@@ -1,0 +1,10 @@
+[Unit]
+Description=vLLM Tailscale erişim kurallarını düzenli olarak uygula
+
+[Timer]
+OnBootSec=20s
+OnUnitActiveSec=30s
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target
