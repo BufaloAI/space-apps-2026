@@ -76,8 +76,8 @@ def mae(y, p):
 
 def climatology(train: pd.DataFrame) -> pd.DataFrame:
     """Alan x yılın haftası hedef ortalaması/std'si (yalnızca eğitimden)."""
-    d = train[["area_id", "week", TARGET]].copy()
-    d["woy"] = (d["week"] + pd.to_timedelta(d.get("horizon_weeks", 2) * 7, unit="D")).dt.isocalendar().week.astype(int)
+    d = train[["area_id", "week", "horizon_weeks", TARGET]].copy()
+    d["woy"] = (d["week"] + pd.to_timedelta(d["horizon_weeks"] * 7, unit="D")).dt.isocalendar().week.astype(int)
     c = d.groupby(["area_id", "woy"])[TARGET].agg(["mean", "std", "count"]).reset_index()
     return c.rename(columns={"mean": "clim_mean", "std": "clim_std", "count": "clim_n"})
 
@@ -168,22 +168,31 @@ def evaluate(name, d, point, quant, feats, clim, cq, mode="delta"):
     return res
 
 
+def area_group(area_id: str) -> str:
+    """Komşu tarlalar aynı grupta: 'ia_cedar_02' -> 'ia_cedar' (ilçe). Sonek yoksa alanın kendisi."""
+    head, _, tail = str(area_id).rpartition("_")
+    return head if head and tail.isdigit() else str(area_id)
+
+
 def area_cv(df, feats, params, device, rounds, k, mode="delta"):
-    """Alanları tamamen dışarıda tutarak değerlendirme (tüm yıllar). Sabit tur sayısıyla."""
-    areas = np.array(sorted(df["area_id"].unique()))
-    if len(areas) < 2:
-        return {"folds": 0, "note": "tek alan, alan bazlı değerlendirme yapılamadı"}
-    k = min(k, len(areas))
-    folds = np.array_split(np.random.default_rng(0).permutation(areas), k)
+    """İLÇELERİ tamamen dışarıda tutarak değerlendirme (tüm yıllar). Aynı ilçedeki komşu tarlalar aynı katmanda
+    olur; yoksa komşu tarla eğitimde kalıp skoru olduğundan iyi gösterir. Sabit tur sayısıyla."""
+    groups = df["area_id"].map(area_group)
+    uniq = np.array(sorted(groups.unique()))
+    if len(uniq) < 2:
+        return {"folds": 0, "note": "tek ilçe/alan, alan bazlı değerlendirme yapılamadı"}
+    k = min(k, len(uniq))
+    folds = np.array_split(np.random.default_rng(0).permutation(uniq), k)
     out = []
     for hold in folds:
-        tr, te = df[~df["area_id"].isin(hold)], df[df["area_id"].isin(hold)]
+        mask = groups.isin(hold)
+        tr, te = df[~mask], df[mask]
         b = xgb.train(dict(params, device=device), xgb.QuantileDMatrix(tr[feats], tr[FIT], missing=np.nan), rounds)
         p = base_of(te, mode) + b.predict(xgb.DMatrix(te[feats], missing=np.nan))
         y = te[TARGET].to_numpy()
         out.append({"held_out": hold.tolist(), "n": len(te), "xgb_rmse": rmse(y, p),
                     "persistence_rmse": rmse(y, te["ndvi"].to_numpy())})
-    return {"folds": k, "detail": out,
+    return {"folds": k, "grouping": "ilçe (area_id son eki atılarak)", "detail": out,
             "xgb_rmse_mean": float(np.nanmean([o["xgb_rmse"] for o in out])),
             "persistence_rmse_mean": float(np.nanmean([o["persistence_rmse"] for o in out]))}
 
@@ -207,8 +216,12 @@ def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: P
 
     df["weight"] = 1.0
     local_info = {"used": False}
-    if local_path:
+    if local_path and mc.get("local_as_target", False):
+        # Uyarı: saha/dron NDVI'si 250 m MODIS pikseliyle aynı ölçekte değil; varsayılan olarak hedefe KARIŞTIRILMAZ
         df, local_info = L.merge_local_targets(df, L.load_local(local_path), weight=mc.get("local_weight", 3.0))
+    elif local_path:
+        local_info = {"used": False, "note": "yerel ölçümler eğitimde kullanılmadı (farklı sensör/ölçek); "
+                                             "kalibrasyon için: ml.model.analyze --calibrate --local ..."}
 
     feats_all = F.feature_columns(df)
     mode = mc.get("target_mode", "delta")
@@ -288,6 +301,9 @@ def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: P
         "schema_version": F.SCHEMA_VERSION, "target": TARGET, "horizon_weeks": int(df["horizon_weeks"].iloc[0]),
         "target_mode": mode, "split": split_note, "features": feats, "dtypes": {c: "float64" for c in feats}, "quantiles": quantiles,
         "prune": plan.to_dict(), "model_version": ts, "conformal_q": cq, "device": device,
+        "interval_coverage_test": metrics["test_temporal"].get("interval_conformal", {}).get("coverage"),
+        "feature_fill": cfg.get("data", {}).get("feature_fill", "ffill"),
+        "composite_anchor": cfg.get("data", {}).get("composite_anchor", "end"),
         "synthetic_input": synthetic,
     }
     (out / "feature_schema.json").write_text(json.dumps(schema, indent=1, ensure_ascii=False))

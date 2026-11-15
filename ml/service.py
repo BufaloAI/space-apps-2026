@@ -58,6 +58,11 @@ class ParcelService:
                  history_years: int = 3, ndvi_weeks: int = 22, ndvi_latency_days: int = 18, ndvi_timeout: float = 60, ndvi_retries: int = 3,
                  power_timeout: float = 30, power_retries: int = 2, cache_days: int = 1):
         self.model = Model.load(model_dir)
+        cov = self.model.schema.get("interval_coverage_test")
+        if cov is None and (self.model.path / "metrics.json").exists():  # eski modeller: metrics.json'dan oku
+            m = json.loads((self.model.path / "metrics.json").read_text())
+            cov = m.get("test_temporal", {}).get("interval_conformal", {}).get("coverage")
+        _INTERVAL_COV[self.model.schema["model_version"]] = cov
         self.cfg = load_config()
         self.cache_dir = Path(cache_dir) if cache_dir else ML_DIR / "cache" / "parcels"
         self.history_years, self.ndvi_weeks = history_years, ndvi_weeks
@@ -230,10 +235,11 @@ class ParcelService:
         long, _rep = clean.clean_frame(raw, hours=tuple(dc.get("hours", (0, 6, 12, 18))))
         if long.empty:
             raise DataUnavailable("Veri temizlendikten sonra kullanılabilir değer kalmadı.")
-        daily, centers = F.to_daily(long)
+        daily, centers = F.to_daily(long, dc.get("composite_anchor", "end"))
         weekly = F.to_weekly(daily)
         return F.build_features(weekly, centers, horizon_weeks=int(self.model.schema["horizon_weeks"]),
-                                ndvi_lags=dc.get("ndvi_lags", 8), max_gap_weeks=dc.get("max_gap_weeks", 2))
+                                ndvi_lags=dc.get("ndvi_lags", 8), max_gap_weeks=dc.get("max_gap_weeks", 2),
+                                feature_fill=dc.get("feature_fill", "ffill"))
 
     # ------------------------------------------------------------ analiz
     def analyze(self, lon: float, lat: float, today: dt.date | None = None, existing=None, chosen=None,
@@ -295,10 +301,7 @@ class ParcelService:
         row = latest.copy()
         if ndvi_row is not None:
             row["ndvi"], row["week"] = ndvi_row["ndvi"], ndvi_row["week"]
-        woy = pd.Timestamp(latest["week"]).isocalendar().week
-        fw = feats["week"].dt.isocalendar().week.astype(int)
-        same_season = feats[(np.minimum(abs(fw - woy), 52 - abs(fw - woy)) <= 3) & (feats["week"] < latest["week"])]
-        ref = same_season.median(numeric_only=True) if len(same_season) >= 3 else feats.median(numeric_only=True)
+        ref = R.seasonal_reference(feats, latest["week"])
         cov = float(latest.get("_coverage", 0.5)) if pd.notna(latest.get("_coverage", np.nan)) else 0.5
         srisk = R.short_term_risk(row, pred, None, ref, cov, int(self.model.schema["horizon_weeks"]))
         if missing:
@@ -333,6 +336,17 @@ class ParcelService:
 
 
 # ---------------------------------------------------------------- backend Layer biçimi
+_INTERVAL_COV: dict[str, float | None] = {}
+
+
+def interval_text(f: dict) -> str:
+    """Aralığı dürüst anlat: testte gerçekten ölçülen kapsamayı yaz (hedef %80, yaz aylarında daha düşük olabilir)."""
+    cov = _INTERVAL_COV.get(f.get("model_version"))
+    if cov:
+        return f"Aralık, testte gerçek değerleri yaklaşık %{100 * cov:.0f} oranında kapsadı (hedef %80)."
+    return "Aralık yaklaşık %80 tahmin aralığıdır."
+
+
 def ndvi_label(v: float) -> str:
     """NDVI sayısını yorum etiketine çevirir (yorum backend'de; model sayıyı yanlış okumasın)."""
     if v < 0.15:
@@ -406,7 +420,7 @@ def to_layers(res: dict) -> list[dict]:
                      f"{f['ndvi_last_observed']:.2f} = {ndvi_label(f['ndvi_last_observed'])} "
                      f"({f['ndvi_last_observed_week']} haftası). NDVI ölçeği: <0.3 çok seyrek/çıplak, "
                      "0.3-0.5 seyrek-orta, 0.5-0.7 orta-yoğun, >0.7 yoğun. "
-                     f"Aralık %80 tahmin aralığıdır. En etkili etkenler: {top}."
+                     f"{interval_text(f)} En etkili etkenler: {top}."
                      + (" Uydu gecikmesi nedeniyle bu, bugüne yakın durumun tahminidir." if f["is_nowcast"] else "")
                      + tag),
             "details": {"forecast": f},

@@ -85,3 +85,19 @@ Tarih: 2026-11-14. Kaynak talimat: `ml-bot-instructions.md`.
   uzatıldı ve zamansal bölme değişti: eğitim 2018-2023, doğrulama 2024-01..06, test 2024-07+ (2025 yazı kısmen eksik).
   Veri sabit tarihlere uymazsa (örn. yalnızca 2024-2025) eğitim zamana göre %70/%15/%15 böler.
 - Backend'de canlı parsel NDVI'si de önce Planetary'den (saniyeler), olmazsa ORNL'den.
+
+## Bağımsız inceleme sonrası düzeltmeler (2026-11-15, ml/ml_feedback1.md)
+- **Sızıntı:** kompozit değeri dönemin ortasına yazılıyordu ve özellik boşlukları doğrusal (gelecek gözlemi de
+  kullanarak) dolduruluyordu. Artık değer dönemin SONUNA yazılıyor (`composite_anchor = "end"`), boşluklar
+  yalnızca geçmişten dolduruluyor (`feature_fill = "ffill"`), hedef yalnızca gerçek gözlem. Ölçüm (72 tarla,
+  yalnızca NDVI özellikleri, CPU): eski xgb 0.0851 / kalıcılık 0.1156; sızıntısız xgb 0.0866 / kalıcılık 0.1193.
+  Kazanç %26 -> %27: sızıntının etkisi küçükmüş, modelin avantajı gerçek. `ndvi_lag5` sızıntısız sürümde de en
+  önemli özellik (fenoloji / 16 günlük döngü), yani sızıntı belirtisi değil.
+- **Doğrulama tam yıl:** eğitim 2018-2022, doğrulama 2023 (yaz dahil), test 2024-2025. Test aralık kapsaması
+  0.76 -> 0.80 (hedef). Arayüz testte ölçülen kapsamayı yazar (`interval_coverage_test`).
+- **İlçe bazlı dışarıda tutma:** `ia_cedar_01/02` gibi komşu tarlalar aynı katmanda (5 katman). Daha dürüst sayı:
+  NDVI-only modelde xgb 0.094 / kalıcılık 0.119 (~%21 kazanç).
+- Yerel saha NDVI'si artık eğitim hedefine karıştırılmıyor (`local_as_target = false`), yalnızca kalibrasyon.
+- `analyze.py` su stresi referansı aynı mevsimin medyanı (service.py ile aynı, `risk.seasonal_reference`).
+- `climatology()` gerçek ufku kullanıyor; monokültürün çeşitlilik puanı 1.0 -> 1/3.
+- CDL özellikleri (`crop_prev1`, `crop_expected`) yalnızca önceki yılları kullanıyor: sızıntı yok (testli).

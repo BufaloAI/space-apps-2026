@@ -43,9 +43,7 @@ def analyze_area(features: pd.DataFrame, area_id: str, week: str | None = None, 
         raise ValueError(f"Alan yok: {area_id}. Var olanlar: {sorted(features['area_id'].unique())[:20]}")
     row = pick_row(area, week)
     pred = model.predict(row.to_frame().T.astype({c: "float64" for c in model.features}))[0]
-    ref = model.area_reference.loc[area_id] if area_id in model.area_reference.index else None
-    if ref is None and len(model.area_reference):
-        ref = model.area_reference.median()  # yeni alan: eğitim alanlarının medyanı (güven düşer)
+    ref = R.seasonal_reference(area, row["week"])  # aynı mevsimin geçmiş medyanı (service.py ile aynı)
     coverage = float(row.get("_coverage", 1.0)) if pd.notna(row.get("_coverage", np.nan)) else 0.5
     srisk = R.short_term_risk(row, pred, model.climatology, ref, coverage)
     cond = R.area_climate(area)

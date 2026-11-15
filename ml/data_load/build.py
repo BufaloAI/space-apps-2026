@@ -50,11 +50,11 @@ def build(raw: list[str], out: str, areas: str | None = None, cfg: dict | None =
         paths, areas=area_list, hours=tuple(dc.get("hours", (0, 6, 12, 18))) or None,
         hour_tolerance_h=dc.get("hour_tolerance_h", 1.5), grid_deg=dc.get("grid_deg", 0.25),
     )
-    daily, centers = features.to_daily(long)
+    daily, centers = features.to_daily(long, dc.get("composite_anchor", "end"))
     weekly = features.to_weekly(daily)
     feat = features.build_features(
         weekly, centers, horizon_weeks=dc.get("horizon_weeks", 2), ndvi_lags=dc.get("ndvi_lags", 8),
-        max_gap_weeks=dc.get("max_gap_weeks", 2),
+        max_gap_weeks=dc.get("max_gap_weeks", 2), feature_fill=dc.get("feature_fill", "ffill"),
     )
     static_rep = None
     if static_dir and Path(static_dir).exists():

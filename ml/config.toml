@@ -8,7 +8,9 @@ hour_tolerance_h = 1.5      # SMAP 01:30/07:30/... örnekleri 0/6/12/18'e düşs
 grid_deg = 0.25             # alan dosyası yoksa noktalar bu ızgaraya bölünür
 horizon_weeks = 2           # hedef: 2 hafta sonraki NDVI (MOD13Q1 16 günlük)
 ndvi_lags = 8
-max_gap_weeks = 2           # en fazla 2 haftalık iç boşluk doğrusal doldurulur
+max_gap_weeks = 2           # en fazla 2 haftalık boşluk doldurulur
+feature_fill = "ffill"      # SIZINTISIZ: yalnızca geçmişten doldur ("linear" eski/sızıntılı, yalnızca deney)
+composite_anchor = "end"    # 16 günlük kompozit değeri dönemin SONUNA yazılır (o gün bilinir); "mid" eski/sızıntılı
 
 [prune]
 col_missing_max = 0.5       # eğitimde yarıdan fazlası boş sütun atılır
@@ -18,9 +20,9 @@ near_dup_bins = 50          # neredeyse aynı satır: std/50 adımla nicemleyip 
 
 [split]
 # zamansal bölme: eğitim < valid_start <= doğrulama < test_start <= test
-valid_start = "2024-01-01"  # eğitim 2018-2023
-test_start = "2024-07-01"   # test: 2024 büyüme mevsimi + 2025 (2025 yazı kısmen eksik)
-area_folds = 3              # alan bazlı (GroupKFold benzeri) ek değerlendirme
+valid_start = "2023-01-01"  # eğitim 2018-2022; doğrulama TAM YIL 2023 (yaz dahil: erken durdurma + aralık ayarı)
+test_start = "2024-01-01"   # test: 2024-2025 (2025 yazı katalogda kısmen eksik)
+area_folds = 5              # ilçe bazlı dışarıda tutma (komşu tarlalar aynı katmanda)
 
 [model]
 device = "auto"             # auto | cuda | cpu
@@ -28,7 +30,8 @@ target_mode = "delta"       # delta: model (2 hafta sonraki NDVI - bugünkü NDV
 num_boost_round = 3000
 early_stopping_rounds = 100
 quantiles = [0.1, 0.5, 0.9]
-local_weight = 3.0          # yerel (çiftçi/saha) gözlemlerinin eğitimdeki ağırlığı
+local_as_target = false     # saha NDVI'si MODIS hedefine karıştırılmaz (ölçek farkı); yalnızca kalibrasyon
+local_weight = 3.0          # local_as_target = true ise eğitimdeki ağırlığı
 
 [model.params]
 tree_method = "hist"

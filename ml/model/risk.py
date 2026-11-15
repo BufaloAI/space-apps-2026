@@ -105,6 +105,17 @@ def short_term_risk(row: pd.Series, pred: dict | None, clim: pd.DataFrame | None
     }
 
 
+def seasonal_reference(feats: pd.DataFrame, week) -> pd.Series:
+    """Su stresi karşılaştırması için AYNI MEVSİMİN (±3 hafta, geçmiş yıllar) medyanları; yeterli veri yoksa tüm
+    geçmişin medyanı. (Yıllık medyanla 4 haftalık yağışı karşılaştırmak kışın stresi abartır.)"""
+    w = pd.Timestamp(week)
+    woy = int(w.isocalendar().week)
+    fw = feats["week"].dt.isocalendar().week.astype(int)
+    near = np.minimum(abs(fw - woy), 52 - abs(fw - woy)) <= 3
+    same = feats[near & (feats["week"] < w)]
+    return same.median(numeric_only=True) if len(same) >= 3 else feats.median(numeric_only=True)
+
+
 def area_climate(area_feats: pd.DataFrame) -> dict:
     """Alanın birkaç yıllık geçmişinden uzun vadeli koşullar (rotasyon puanlaması için)."""
     d = area_feats.copy()

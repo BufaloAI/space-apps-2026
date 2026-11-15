@@ -180,7 +180,7 @@ def score_rotation(key: str, name: str, seq: list[str], cond: dict, priorities: 
 
     fams = [c["family"] for c in mains]
     real = [f for f in fams if f != "none"]
-    diversity = len(set(real)) / max(1, min(3, len(seq)))
+    diversity = min(1.0, len(set(real)) / 3)  # 3 farklı aile = tam puan; monokültür 1/3 (eskiden 1.0'dı)
     repeated = len(seq) == 1 or any(fams[i] == fams[(i + 1) % len(fams)] and fams[i] != "none"
                                     for i in range(len(fams)))
     perennial = any(c["season"] == "perennial" for c in mains)

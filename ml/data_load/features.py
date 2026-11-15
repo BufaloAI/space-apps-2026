@@ -12,18 +12,21 @@ import pandas as pd
 
 from . import registry as reg
 
-# 16 günlük kompozitlerin tarihi dönem başlangıcıdır; değeri dönemin ortasına taşırız.
-COMPOSITE_SHIFT_DAYS = {"ndvi": 8, "evi": 8, "modis_et_mm": 4, "openet_et_mm": 15}
+# Kompozit tarihi dönem BAŞLANGICIDIR. Sızıntı olmasın diye değer dönemin SONUNA yazılır ("end"): o gün değer
+# gerçekten bilinir. "mid" (eski davranış, dönemin ortası) yalnızca karşılaştırma deneyi için tutuluyor; ortaya
+# yazınca t haftasının özelliği t'den ~1 hafta sonrasının verisini içerir.
+COMPOSITE_SHIFT_DAYS = {"end": {"ndvi": 15, "evi": 15, "modis_et_mm": 7, "openet_et_mm": 29},
+                        "mid": {"ndvi": 8, "evi": 8, "modis_et_mm": 4, "openet_et_mm": 15}}
 MINMAX_VARS = {"t2m_c", "tmax_c", "tmin_c", "sm_surface", "sm_rootzone", "gwet_top", "gwet_root", "lst_day_c"}
 SUM_VARS = {"precip_mm", "et_mm", "modis_et_mm", "openet_et_mm", "gdd", "heat_day", "frost_day", "dry_day"}
 SCHEMA_VERSION = 1
 
 
-def to_daily(long: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def to_daily(long: pd.DataFrame, composite_anchor: str = "end") -> tuple[pd.DataFrame, pd.DataFrame]:
     """Uzun tablo -> (alan x gün geniş tablo, alan merkezleri)."""
     df = long.copy()
     df["var"] = df["var"].astype(str)
-    shift = df["var"].map(COMPOSITE_SHIFT_DAYS).fillna(0).astype(int)
+    shift = df["var"].map(COMPOSITE_SHIFT_DAYS[composite_anchor]).fillna(0).astype(int)
     df["date"] = (df["time"] + pd.to_timedelta(shift, unit="D")).dt.normalize()
     centers = df.groupby("area_id")[["lat", "lon"]].mean()
     daily = df.pivot_table(index=["area_id", "date"], columns="var", values="value", aggfunc="mean", observed=True)
@@ -73,14 +76,18 @@ def to_weekly(daily: pd.DataFrame) -> pd.DataFrame:
 
 def build_features(weekly: pd.DataFrame, centers: pd.DataFrame, horizon_weeks: int = 2,
                    ndvi_lags: int = 8, other_lags=(1, 2, 4), max_gap_weeks: int = 2,
-                   target_var: str = "ndvi") -> pd.DataFrame:
+                   target_var: str = "ndvi", feature_fill: str = "ffill") -> pd.DataFrame:
+    """feature_fill: "ffill" (varsayılan, SIZINTISIZ: boşluk yalnızca geçmişten doldurulur) ya da "linear"
+    (eski davranış, yalnızca karşılaştırma için: iki gözlem arası doğrusal doldurma GELECEK gözlemi kullanır)."""
     """Haftalık tablodan gecikme/pencere/mevsim özellikleri ve hedefi üretir."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", pd.errors.PerformanceWarning)
-        return _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_gap_weeks, target_var)
+        return _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_gap_weeks, target_var,
+                               feature_fill)
 
 
-def _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_gap_weeks, target_var):
+def _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_gap_weeks, target_var,
+                    feature_fill="ffill"):
     frames = []
     count_cols = [c for c in weekly.columns if c.startswith("_n_")]
     base_vars = [c for c in weekly.columns if c not in ("area_id", "week") and c not in count_cols]
@@ -91,8 +98,12 @@ def _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_g
         a.index.name = "week"
         observed_target = a[target_var].notna() if target_var in a else pd.Series(False, index=a.index)
         f = pd.DataFrame(index=a.index)
-        # kısa iç boşlukları doldur (en fazla 2 adım), uzun boşluklar NaN kalır
-        filled = a[base_vars].astype("float64").interpolate(method="linear", limit=max_gap_weeks, limit_area="inside")
+        # kısa boşlukları doldur (en fazla 2 adım), uzun boşluklar NaN kalır. ffill: yalnızca geçmiş bilgi.
+        raw = a[base_vars].astype("float64")
+        if feature_fill == "linear":
+            filled = raw.interpolate(method="linear", limit=max_gap_weeks, limit_area="inside")
+        else:
+            filled = raw.ffill(limit=max_gap_weeks)
         for v in base_vars:
             f[v] = filled[v]
         if target_var in filled:
@@ -103,6 +114,10 @@ def _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_g
             f[f"{target_var}_slope4"] = (t - t.shift(4)) / 4
             f[f"{target_var}_max12"] = t.rolling(12, min_periods=3).max()
             f[f"{target_var}_obs"] = observed_target.astype("float64")
+            # son gerçek gözlemden bu yana geçen hafta (taşınan değerin ne kadar eski olduğu)
+            grp = observed_target.cumsum()
+            age = observed_target.groupby(grp).cumcount().astype("float64")
+            f[f"{target_var}_age_weeks"] = age.where(grp > 0)
         for v in [v for v in base_vars if v != target_var and not v.endswith(("_min", "_max"))]:
             for k in other_lags:
                 f[f"{v}_lag{k}"] = filled[v].shift(k)
@@ -127,7 +142,9 @@ def _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_g
         f["lon"] = float(centers.loc[aid, "lon"])
         # hedef
         if target_var in filled:
-            f[f"target_{target_var}"] = filled[target_var].shift(-horizon_weeks)
+            # hedef: yalnızca GERÇEKTEN gözlenmiş değer (doldurulmuş değil)
+            tsrc = filled[target_var] if feature_fill == "linear" else raw[target_var]
+            f[f"target_{target_var}"] = tsrc.shift(-horizon_weeks)
             f["target_observed"] = observed_target.shift(-horizon_weeks).astype("float64").fillna(0)
         # veri kapsamı (güven skoru için): son 4 haftada kaç kaynakta gözlem var
         f["_coverage"] = (a[count_cols].fillna(0) > 0).mean(axis=1).rolling(4, min_periods=1).mean() if count_cols else 0.0
