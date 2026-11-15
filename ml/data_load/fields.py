@@ -580,6 +580,37 @@ def _cmd_select(a) -> None:
     print(f"{len(kept)}/{len(cands)} aday kabul -> {out}, {static}")
 
 
+def _cmd_static(a) -> None:
+    """Var olan alan dosyasından (seçim tekrar yapılmadan) statik tabloları kurar: CDL geçmişi dosyanın içindeki
+    crop_history'den (ağ yok), toprak SSURGO'dan (alan başına 1 hızlı istek)."""
+    cache = default_cache() if not a.cache else DiskCache(a.cache)
+    areas = json.loads(Path(a.areas).read_text())
+    static = Path(a.static_dir)
+    static.mkdir(parents=True, exist_ok=True)
+    rows, soils = [], []
+    try:
+        for f in areas:
+            for h in f.get("crop_history", []):
+                code = h.get("cdl_code")
+                rows.append({"area_id": f["area_id"], "year": int(h["year"]), "cdl_code": code,
+                             "cdl_name": CDL_CODES.get(code, {}).get("name") if code is not None else None,
+                             "crop_key": h.get("crop_key")})
+            try:
+                s = soil_at(f["lat"], f["lon"], cache)
+            except RuntimeError as e:
+                log.warning("toprak %s: %s", f["area_id"], e)
+                s = None
+            soils.append({"area_id": f["area_id"], **(s or {})})
+    finally:
+        cache.flush()
+    hist = pd.DataFrame(rows, columns=["area_id", "year", "cdl_code", "cdl_name", "crop_key"])
+    hist["cdl_code"] = hist["cdl_code"].astype("Int64")
+    hist.to_parquet(static / "cdl_history.parquet", index=False)
+    pd.DataFrame(soils).to_parquet(static / "soil.parquet", index=False)
+    n_soil = sum(1 for s in soils if len(s) > 1)
+    print(f"{len(areas)} tarla: CDL geçmişi {hist['area_id'].nunique()} tarla, toprak {n_soil} tarla -> {static}")
+
+
 def _cmd_point(a) -> None:
     cache = default_cache() if not a.cache else DiskCache(a.cache)
     try:
@@ -603,6 +634,11 @@ def main(argv: Sequence[str] | None = None) -> None:
     s.add_argument("--workers", type=int, default=3)
     s.add_argument("--cache", default=None, help="HTTP önbellek dosyası (varsayılan ml/cache/static)")
     s.set_defaults(fn=_cmd_select)
+    t = sub.add_parser("static", help="var olan alan dosyasından CDL/toprak tablolarını kur (seçim yok)")
+    t.add_argument("--areas", default="ml/data_load/areas.us.json")
+    t.add_argument("--static-dir", default=str(CACHE_DIR))
+    t.add_argument("--cache", default=None)
+    t.set_defaults(fn=_cmd_static)
     p = sub.add_parser("point", help="tek nokta: geçmiş + rotasyon + toprak")
     p.add_argument("--lat", type=float, required=True)
     p.add_argument("--lon", type=float, required=True)

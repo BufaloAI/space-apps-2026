@@ -74,3 +74,14 @@ Tarih: 2026-11-14. Kaynak talimat: `ml-bot-instructions.md`.
   GAEZ, CoCoRaHS, NWIS (rotasyon kararına katkısı düşük), ERA5 (CDS anahtarı yok, POWER benzeri), AMS (NASS fiyatı
   yeterli; anahtar yok).
 - CDL web sayfasının SSL zinciri bozuk; veri servisi (axis2) sağlam ama zaman zaman 60 sn+ yanıt vermiyor.
+
+## NDVI kaynağı: Microsoft Planetary Computer (2026-11-15)
+- ORNL'nin önündeki proxy her isteği 60. saniyede kesiyor (502); AppEEARS girişi 504. Bizim istek biçimimizden
+  bağımsız (tek tarih / 10 tarih / bantsız / iki bant denendi).
+- Planetary Computer aynı MOD13Q1 v061 ürününü (+ Aqua MYD13Q1) bulut-optimize GeoTIFF olarak sunuyor; yalnızca
+  pikselin bloğu okunur. ORNL ile aynı tarihlerde değerler BİREBİR aynı (Iowa'da 35/36; 1 farkı muhtemelen yeniden
+  işlenmiş dosya). Tarla başına 2 yıl ~20 sn, 8 yıl ~1 dk.
+- Katalogda 2025-06-26..2025-11-17 arasında Terra ve Aqua sahnesi yok (2018-2024 ve 2026 tam). Bu yüzden veri 2018'e
+  uzatıldı ve zamansal bölme değişti: eğitim 2018-2023, doğrulama 2024-01..06, test 2024-07+ (2025 yazı kısmen eksik).
+  Veri sabit tarihlere uymazsa (örn. yalnızca 2024-2025) eğitim zamana göre %70/%15/%15 böler.
+- Backend'de canlı parsel NDVI'si de önce Planetary'den (saniyeler), olmazsa ORNL'den.

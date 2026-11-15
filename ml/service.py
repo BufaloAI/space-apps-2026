@@ -95,10 +95,21 @@ class ParcelService:
 
         def ndvi():
             progress("data", {"source": "ndvi", "status": "started"})
+            # 1) Planetary Computer (hızlı, Terra + Aqua); 2) olmazsa ORNL (yavaş, yalnızca Terra)
+            try:
+                from ml.data_load import planetary  # noqa: PLC0415
+
+                df = planetary.fetch_area(AREA, lat, lon, n_start, today, workers=12)
+                if not df.empty:
+                    progress("data", {"source": "ndvi", "status": "done", "rows": len(df), "provider": "planetary"})
+                    return df
+                log.warning("Planetary Computer NDVI boş döndü; ORNL deneniyor")
+            except Exception as e:  # noqa: BLE001
+                log.warning("Planetary Computer NDVI alınamadı (%s); ORNL deneniyor", str(e)[:150])
             n_end = today - dt.timedelta(days=self.ndvi_latency_days)
             df = download.fetch_modis_ornl(AREA, lat, lon, n_start, n_end, "MOD13Q1", timeout=self.ndvi_timeout,
                                            retries=self.ndvi_retries, parallel=True, patient=False)
-            progress("data", {"source": "ndvi", "status": "done", "rows": len(df)})
+            progress("data", {"source": "ndvi", "status": "done", "rows": len(df), "provider": "ornl"})
             return df
 
         frames = []

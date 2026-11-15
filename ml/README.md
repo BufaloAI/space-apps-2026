@@ -43,7 +43,8 @@ Gerekenler: `~/.netrc` içinde Earthdata girişi, `ml/.env` içinde `NASS_API_KE
 |---|---|---|
 | fields | USDA CDL (ürün geçmişi) + SSURGO (toprak); 132 aday noktadan gerçek tarlalar | `data_load/areas.us.json`, `cache/static/{cdl_history,soil}.parquet` |
 | power | NASA POWER günlük hava | `cache/raw/POWER.parquet` |
-| appeears | AppEEARS: MODIS NDVI (Terra+Aqua), LST, ET, SMAP toprak nemi, SRTM eğim | `cache/raw/*.parquet`, `cache/static/elevation.parquet` |
+| ndvi | MODIS NDVI Terra + Aqua (MOD13Q1/MYD13Q1): Microsoft Planetary Computer; olmazsa ORNL | `cache/raw/{MOD13Q1,MYD13Q1}.parquet` |
+| appeears | AppEEARS: MODIS LST, ET, SMAP toprak nemi, SRTM eğim (ek veri; çalışmazsa akış durmaz) | `cache/raw/*.parquet`, `cache/static/elevation.parquet` |
 | usda | NASS ilçe verimleri + fiyatlar, OpenET (batı eyaletleri) | `cache/static/nass_*.parquet`, `cache/raw/OPENET.parquet` |
 | build / train / verify | özellik tablosu, XGBoost, testler | `cache/features.parquet`, `runs/<zaman>/` |
 
@@ -51,7 +52,10 @@ Adımlar tek tek de çalışır:
 
 ```bash
 uv run python -m ml.data_load.fields select --out ml/data_load/areas.us.json --years 2015-2025
-uv run python -m ml.data_load.download --areas ml/data_load/areas.us.json --sources power --out ml/cache/raw
+uv run python -m ml.data_load.download --areas ml/data_load/areas.us.json --sources power --out ml/cache/raw \
+    --start 2018-01-01 --end 2025-12-31
+uv run python -m ml.data_load.planetary --areas ml/data_load/areas.us.json --start 2018-01-01 --end 2025-12-31 \
+    --out ml/cache/raw
 uv run python -m ml.data_load.appeears --areas ml/data_load/areas.us.json --start 2024-01-01 --end 2025-12-31 \
     --out ml/cache/raw --static-out ml/cache/static --products ndvi,ndvi_aqua,lst,et,smap,elev
 uv run python -m ml.data_load.usda --areas ml/data_load/areas.us.json --start 2024-01-01 --end 2025-12-31 \
@@ -64,6 +68,11 @@ uv run pytest -q
 ```
 
 Sentetik deneme: `uv run python -m ml.data_load.sample` (yalnızca test).
+
+**Başka bilgisayardan gelen veri** (WhatsApp/USB ile gelen `.parquet` dosyaları): mevcut veriye ekler, tekrarları atar:
+```bash
+uv run python -m ml.data_load.merge ~/İndirilenler/MOD13Q1.parquet ~/İndirilenler/MYD13Q1.parquet
+```
 
 ## Çıktı tipi (XGBoost girdisi)
 `features.parquet`: bir satır bir alan-hafta (`area_id`, `week` = pazartesi). Bütün özellikler `float64`, eksik

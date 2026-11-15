@@ -86,6 +86,15 @@ def client(monkeypatch, model_dir, fake_raw, tmp_path):
 
     monkeypatch.setattr(download, "fetch_power", fp)
     monkeypatch.setattr(download, "fetch_modis_ornl", fn)
+    from ml.data_load import planetary
+
+    def fpc(*a, **k):  # Planetary Computer (birincil NDVI kaynağı) da ağa çıkmasın
+        calls["planetary"] = calls.get("planetary", 0) + 1
+        if calls.get("planetary_down"):
+            raise RuntimeError("planetary kapalı")
+        return ndvi.copy()
+
+    monkeypatch.setattr(planetary, "fetch_area", fpc)
     from ml import service as S
 
     static = {"soil": {"om_pct": 3.5, "clay_pct": 21, "sand_pct": 45, "slope_pct": 3, "hydgrp": "B",
@@ -151,9 +160,9 @@ def test_analysis_produces_real_layers_and_progress(client):
 
 def test_cache_reused_and_rescore_updates_bots(client):
     sid, _ = start(client)
-    assert client.calls == {"power": 1, "ndvi": 1}
+    assert client.calls == {"power": 1, "ndvi": 0, "planetary": 1}  # NDVI Planetary'den, ORNL'ye gerek yok
     start(client, sid)  # aynı gün aynı parsel -> önbellek
-    assert client.calls == {"power": 1, "ndvi": 1}
+    assert client.calls == {"power": 1, "ndvi": 0, "planetary": 1}
 
     r = client.post("/api/rotations", json={"session_id": sid, "chosen_rotation": "sorghum>soybean>winter_wheat",
                                             "existing_rotation": "corn>soybean"})
@@ -224,3 +233,13 @@ def test_existing_rotation_auto_from_cdl(client):
     assert meta["field_info"]["existing_rotation_source"] == "USDA CDL"
     assert meta["field_info"]["soil"]["soil_texture"] == "loam"
     assert any("CDL" in w for w in meta["warnings"])
+
+
+def test_ndvi_falls_back_to_ornl_when_planetary_down(client):
+    client.calls["planetary_down"] = True
+    _, ev = start(client)
+    prov = [e["progress"].get("provider") for e in ev if e.get("status") == "progress"
+            and e["progress"].get("source") == "ndvi" and e["progress"].get("status") == "done"]
+    assert prov == ["ornl"] and client.calls["ndvi"] == 1
+    done = next(e for e in ev if e.get("stage") == "ml" and e.get("status") == "done")
+    assert any(lay["name"] == "ndvi_tahmin" for lay in done["layers"])

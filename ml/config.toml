@@ -1,7 +1,7 @@
 # ML katmanı ayarları (ml/data_load + ml/model)
 
 [data]
-start = "2024-01-01"
+start = "2018-01-01"   # NDVI Planetary Computer: 2018+ tam (2025 yazında katalog boşluğu var)
 end = "2025-12-31"
 hours = [0, 6, 12, 18]      # alt-günlük üründen yalnızca bu UTC saatlerine en yakın örnekler
 hour_tolerance_h = 1.5      # SMAP 01:30/07:30/... örnekleri 0/6/12/18'e düşsün
@@ -18,8 +18,8 @@ near_dup_bins = 50          # neredeyse aynı satır: std/50 adımla nicemleyip 
 
 [split]
 # zamansal bölme: eğitim < valid_start <= doğrulama < test_start <= test
-valid_start = "2025-04-01"
-test_start = "2025-07-01"
+valid_start = "2024-01-01"  # eğitim 2018-2023
+test_start = "2024-07-01"   # test: 2024 büyüme mevsimi + 2025 (2025 yazı kısmen eksik)
 area_folds = 3              # alan bazlı (GroupKFold benzeri) ek değerlendirme
 
 [model]

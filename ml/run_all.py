@@ -5,8 +5,8 @@
     uv run python -m ml.run_all --only fields,power --force   # yalnızca bu adımları baştan çalıştır
     uv run python -m ml.run_all --max-fields 10 # deneme: yalnızca 10 tarla
 
-Adımlar: preflight, fields (CDL + SSURGO tarla seçimi), power (NASA POWER), appeears (MODIS NDVI/LST/ET, SMAP,
-SRTM), usda (NASS verim/fiyat, OpenET), build (özellik tablosu), train (XGBoost), verify (testler + metrik
+Adımlar: preflight, fields (CDL + SSURGO tarla seçimi), power (NASA POWER), ndvi (MODIS NDVI: Planetary
+Computer, olmazsa ORNL), appeears (MODIS LST/ET, SMAP, SRTM; çalışmazsa akış durmaz), usda (NASS verim/fiyat, OpenET), build (özellik tablosu), train (XGBoost), verify (testler + metrik
 kontrolü). Her adımın çıktısı `ml/cache/logs/<adım>.log`'a yazılır. Yarıda kalırsa tekrar çalıştırın: tamamlanmış
 adımlar atlanır, indiriciler kendi önbelleklerinden devam eder. Sonunda `ml/cache/run_all_report.md` yazılır:
 neyin tamam, neyin eksik olduğu ve eksikleri tamamlamak için komutlar.
@@ -37,8 +37,8 @@ REPORT = CACHE / "run_all_report.md"
 AREAS_US = ML / "data_load" / "areas.us.json"
 AREAS_EXAMPLE = ML / "data_load" / "areas.example.json"
 FEATURES = CACHE / "features.parquet"
-STEPS = ["preflight", "fields", "power", "appeears", "usda", "build", "train", "verify"]
-APPEEARS_PRODUCTS = "ndvi,ndvi_aqua,lst,et,smap,elev"
+STEPS = ["preflight", "fields", "power", "ndvi", "appeears", "usda", "build", "train", "verify"]
+APPEEARS_PRODUCTS = "lst,et,smap,elev"  # NDVI ayrı adımda (Planetary Computer)
 UA = {"User-Agent": "field-shift-research/0.1"}
 
 OK, WARN, FAIL, SKIP = "✅", "⚠️", "❌", "⏭️"
@@ -217,22 +217,123 @@ def step_fields(ctx: Ctx) -> bool:
     return n > 0
 
 
+def raw_span(source: str, column_hint: str | None = None) -> dict[str, tuple]:
+    """Ham dosyada alan başına (ilk tarih, son tarih, satır sayısı)."""
+    import pandas as pd
+
+    p = RAW / f"{source}.parquet"
+    if not p.exists():
+        return {}
+    d = pd.read_parquet(p)
+    if column_hint:
+        cols = [c for c in d.columns if column_hint.lower() in c.lower()]
+        if cols:
+            d = d[d[cols].notna().any(axis=1)]
+    g = d.groupby("area_id")["time"].agg(["min", "max", "size"])
+    return {a: (r["min"], r["max"], int(r["size"])) for a, r in g.iterrows()}
+
+
+def covers(span: tuple | None, start: str, end: str, slack_days: int = 20) -> bool:
+    import pandas as pd
+
+    if not span:
+        return False
+    return span[0] <= pd.Timestamp(start) + pd.Timedelta(days=slack_days) and \
+        span[1] >= pd.Timestamp(end) - pd.Timedelta(days=slack_days)
+
+
 def step_power(ctx: Ctx) -> bool:
     areas = limited_areas(ctx)
     want = set(area_ids(areas))
-    have = {a for a, n in raw_coverage("POWER").items() if n >= 300}
+    have = {a for a, sp in raw_span("POWER").items() if covers(sp, ctx.a.start, ctx.a.end, 5)}
     if want <= have and not ctx.force("power"):
-        ctx.note("power", OK, f"POWER tüm {len(want)} tarlada var")
+        ctx.note("power", OK, f"POWER tüm {len(want)} tarlada {ctx.a.start}..{ctx.a.end} aralığını kapsıyor")
         return True
-    good = run_cmd(ctx, "power", ["ml.data_load.download", "--areas", str(areas), "--start", ctx.a.start,
-                                  "--end", ctx.a.end, "--out", str(RAW), "--sources", "power", "--workers", "3"])
-    have = {a for a, n in raw_coverage("POWER").items() if n >= 300}
+    run_cmd(ctx, "power", ["ml.data_load.download", "--areas", str(areas), "--start", ctx.a.start,
+                           "--end", ctx.a.end, "--out", str(RAW), "--sources", "power", "--workers", "3"])
+    have = {a for a, sp in raw_span("POWER").items() if covers(sp, ctx.a.start, ctx.a.end, 5)}
     miss = sorted(want - have)
-    ctx.note("power", OK if not miss else WARN, f"POWER: {len(want & have)}/{len(want)} tarla" +
+    ctx.note("power", OK if not miss else WARN, f"POWER: {len(want & have)}/{len(want)} tarla tam aralıkta" +
              (f", eksik: {', '.join(miss[:8])}" if miss else ""))
     if miss:
         ctx.todo.append("POWER eksik tarlalar için: uv run python -m ml.run_all --only power")
     return bool(have)
+
+
+NDVI_PER_YEAR = 46  # Terra 23 + Aqua 23 kompozit
+NDVI_MIN_FRACTION = 0.6  # beklenenin %60'ı altı "eksik" (2025 yazındaki katalog boşluğu ~%5-10 götürür)
+
+
+def ndvi_counts() -> dict[str, int]:
+    out: dict[str, int] = {}
+    for src in ("MOD13Q1", "MYD13Q1"):
+        for a, n in raw_coverage(src, "NDVI").items():
+            out[a] = out.get(a, 0) + n
+    return out
+
+
+def ndvi_complete(ctx: Ctx) -> set[str]:
+    import pandas as pd
+
+    years = (pd.Timestamp(ctx.a.end) - pd.Timestamp(ctx.a.start)).days / 365.25
+    need = NDVI_MIN_FRACTION * NDVI_PER_YEAR * years
+    return {a for a, n in ndvi_counts().items() if n >= need}
+
+
+def step_ndvi(ctx: Ctx) -> bool:
+    """NDVI: önce Microsoft Planetary Computer (hızlı, girişsiz; MOD13Q1 + MYD13Q1), olmazsa ORNL (yavaş)."""
+    areas = limited_areas(ctx)
+    want = set(area_ids(areas))
+    if want <= ndvi_complete(ctx) and not ctx.force("ndvi"):
+        ctx.note("ndvi", OK, f"NDVI tüm {len(want)} tarlada yeterli")
+        return True
+    before = ndvi_counts()
+    run_cmd(ctx, "ndvi", ["ml.data_load.planetary", "--areas", str(areas), "--start", ctx.a.start, "--end",
+                          ctx.a.end, "--out", str(RAW), "--workers", "12", "--area-workers", "3"])
+    after = ndvi_counts()
+    done = want & ndvi_complete(ctx)
+    some = want & set(after)
+    ctx.note("ndvi", OK if done == want else (WARN if some else FAIL),
+             f"NDVI (Planetary Computer): {len(done)}/{len(want)} tarla yeterli, {len(some)} tarlada veri var")
+    if after == before and done != want:  # Planetary hiç yeni veri getirmedi -> ORNL yedeği (son 2 yıl; yavaş)
+        return ornl_ndvi_fallback(ctx, areas, want)
+    if done != want:
+        ctx.todo.append("Bazı tarlalarda NDVI eksik; tekrar: uv run python -m ml.run_all --only ndvi,build,train,verify")
+    ctx.todo.append("Bilgi: Planetary Computer kataloğunda 2025-06-26..2025-11-17 MODIS boşluğu var (2025 yazı). "
+                    "İsterseniz ORNL ile doldurulabilir (yavaş): uv run python -m ml.data_load.download --areas "
+                    "ml/data_load/areas.us.json --start 2025-06-01 --end 2025-11-30 --out ml/cache/raw --sources modis "
+                    "--workers 1")
+    return bool(some)
+
+
+ORNL_MIN_COMPOSITES = 35  # ORNL yedeği: 2 yılda ~46 Terra kompoziti beklenir
+
+
+def ornl_ndvi_fallback(ctx: Ctx, areas: Path, want: set[str]) -> bool:
+    """Planetary yoksa NDVI'yı ORNL MODIS servisinden çeker (yavaş, girişsiz). Yalnızca son 2 yıl.
+    ORNL aşırı yüklenince 503 verdiği için tek işçiyle ve uzun beklemelerle çalışır; yarım kalan tarlalar
+    (az kompozit) sonraki turlarda tekrar denenir."""
+    import pandas as pd
+
+    start = max(pd.Timestamp(ctx.a.start), pd.Timestamp(ctx.a.end) - pd.Timedelta(days=730)).date().isoformat()
+
+    def complete() -> set[str]:
+        return {a for a, n in raw_coverage("MOD13Q1", "NDVI").items() if n >= ORNL_MIN_COMPOSITES}
+
+    ctx.note("ndvi", WARN, f"yedek: NDVI ORNL'den çekiliyor ({len(want - complete())} tarla, {start}..; yavaş)")
+    for _ in (1, 2, 3):  # ORNL bazı istekleri düşürür; sonraki turlar yalnızca eksik/yarım tarlaları dener
+        miss = sorted(want - complete())
+        if not miss:
+            break
+        sub = CACHE / "areas_ornl_missing.json"
+        sub.write_text(json.dumps([a for a in json.loads(areas.read_text()) if a["area_id"] in miss]))
+        run_cmd(ctx, "ornl_ndvi", ["ml.data_load.download", "--areas", str(sub), "--start", start, "--end",
+                                   ctx.a.end, "--out", str(RAW), "--sources", "modis", "--workers", "1"])
+    got = want & set(raw_coverage("MOD13Q1", "NDVI"))
+    ctx.note("ndvi", OK if got == want else (WARN if got else FAIL), f"yedek NDVI (ORNL): {len(got)}/{len(want)} tarla")
+    if got != want:
+        ctx.todo.append("Bazı tarlalarda NDVI eksik; tekrar: uv run python -m ml.run_all --only ndvi,build,train,verify")
+    return bool(got)
 
 
 def appeears_smoke(ctx: Ctx, areas: Path) -> bool:
@@ -249,19 +350,11 @@ def appeears_smoke(ctx: Ctx, areas: Path) -> bool:
     one.write_text(json.dumps(first))
     run_cmd(ctx, "appeears_smoke", ["ml.data_load.appeears", "--areas", str(one), "--start", "2024-06-01",
                                     "--end", "2024-07-31", "--out", str(smoke_dir), "--static-out",
-                                    str(smoke_dir / "static"), "--products", "ndvi,lst,smap", "--check",
+                                    str(smoke_dir / "static"), "--products", "lst,smap", "--check",
                                     "--timeout-min", "60"], timeout_h=1.5)
     problems = []
-    f = smoke_dir / "MOD13Q1.parquet"
-    if not f.exists():
-        problems.append("NDVI deneme dosyası oluşmadı")
-    else:
-        long, _ = clean.clean_frame(pd.read_parquet(f), hours=None)
-        nd = long.loc[long["var"].astype(str) == "ndvi", "value"]
-        if nd.empty or not nd.between(-0.2, 1.0).all():
-            problems.append(f"NDVI ölçeği beklenmedik ({nd.min() if len(nd) else 'yok'}..{nd.max() if len(nd) else ''})")
-        else:
-            ctx.note("appeears", OK, f"biçim kontrolü: NDVI {nd.min():.2f}..{nd.max():.2f} ({len(nd)} ölçüm) doğru")
+    if not any((smoke_dir / f"{s}.parquet").exists() for s in ("MOD11A2", "SPL4SMGP")):
+        problems.append("deneme dosyası oluşmadı")
     for src, var, lo, hi in (("MOD11A2", "lst_day_c", -40, 70), ("SPL4SMGP", "sm_surface", 0, 1)):
         g = smoke_dir / f"{src}.parquet"
         if g.exists():
@@ -277,7 +370,7 @@ def appeears_smoke(ctx: Ctx, areas: Path) -> bool:
         ctx.note("appeears", WARN if outage else FAIL, "AppEEARS kullanılamadı: " + "; ".join(problems)
                  + (" (sunucu/giriş kesintisi)" if outage else ""))
         if outage:
-            ctx.todo.append("AppEEARS kesintisi bitince SMAP/LST/ET/Aqua NDVI için tekrar: "
+            ctx.todo.append("AppEEARS kesintisi bitince SMAP/LST/ET/eğim için tekrar: "
                             "uv run python -m ml.run_all --only appeears,build,train,verify")
         else:
             ctx.todo.append("AppEEARS biçimi beklenenden farklı; ml/cache/logs/appeears_smoke.log dosyasını "
@@ -288,65 +381,30 @@ def appeears_smoke(ctx: Ctx, areas: Path) -> bool:
     return True
 
 
-ORNL_MIN_COMPOSITES = 35  # 2 yılda ~46 kompozit beklenir; altı "yarım" sayılır ve tekrar denenir
-
-
-def ndvi_complete() -> set[str]:
-    return {a for a, n in raw_coverage("MOD13Q1", "NDVI").items() if n >= ORNL_MIN_COMPOSITES}
-
-
-def ornl_ndvi_fallback(ctx: Ctx, areas: Path, want: set[str]) -> bool:
-    """AppEEARS yoksa NDVI'yı ORNL MODIS servisinden çeker (yavaş ama girişsiz). Yalnızca NDVI gelir.
-    ORNL aşırı yüklenince 503 verdiği için tek işçiyle ve uzun beklemelerle çalışır; yarım kalan tarlalar
-    (az kompozit) sonraki turlarda tekrar denenir."""
-    have = ndvi_complete()
-    if want <= have:
-        ctx.note("appeears", OK, f"yedek: NDVI (ORNL) zaten {len(want)} tarlada var")
-        return True
-    ctx.note("appeears", WARN, f"yedek: NDVI ORNL'den çekiliyor ({len(want - have)} tarla; yavaş, ~1 sa+)")
-    for attempt in (1, 2, 3):  # ORNL bazı istekleri düşürür; sonraki turlar yalnızca eksik/yarım tarlaları dener
-        miss = sorted(want - ndvi_complete())
-        if not miss:
-            break
-        sub = CACHE / "areas_ornl_missing.json"
-        sub.write_text(json.dumps([a for a in json.loads(areas.read_text()) if a["area_id"] in miss]))
-        run_cmd(ctx, "ornl_ndvi", ["ml.data_load.download", "--areas", str(sub), "--start", ctx.a.start, "--end",
-                                   ctx.a.end, "--out", str(RAW), "--sources", "modis", "--workers", "1"])
-    got = want & set(raw_coverage("MOD13Q1", "NDVI"))
-    full = want & ndvi_complete()
-    if got != full:
-        ctx.note("appeears", WARN, f"yarım NDVI (< {ORNL_MIN_COMPOSITES} kompozit): {len(got - full)} tarla "
-                                   "(eğitimde kullanılır, boşlukları NaN)")
-    ctx.note("appeears", OK if got == want else (WARN if got else FAIL), f"yedek NDVI (ORNL): {len(got)}/{len(want)} tarla")
-    if got != want:
-        ctx.todo.append("Bazı tarlalarda NDVI eksik; tekrar denemek için: uv run python -m ml.run_all --only appeears,build,train,verify")
-    return bool(got)
-
-
 def step_appeears(ctx: Ctx) -> bool:
+    """AppEEARS: ek uydu verisi (SMAP toprak nemi, yüzey sıcaklığı, ET, SRTM eğim). Çalışmazsa akış DURMAZ
+    (NDVI ayrı adımda Planetary'den gelir); model bu verilerle daha iyi olur ama onlarsız da eğitilir."""
     areas = limited_areas(ctx)
     want = set(area_ids(areas))
+    checks = (("MOD11A2", "LST", "yüzey sıcaklığı"), ("MOD16A2GF", "et", "MODIS ET"),
+              ("SPL4SMGP", "sm_", "SMAP toprak nemi"))
+    have_all = all(want <= set(raw_coverage(src, hint)) for src, hint, _ in checks)
+    if have_all and (STATIC / "elevation.parquet").exists() and not ctx.force("appeears"):
+        ctx.note("appeears", OK, "SMAP/LST/ET/eğim tüm tarlalarda var")
+        return True
     if not appeears_smoke(ctx, areas):
-        return ornl_ndvi_fallback(ctx, areas, want)
-    ndvi = set(raw_coverage("MOD13Q1", "NDVI")) | set(raw_coverage("MYD13Q1", "NDVI"))
-    if want <= ndvi and (STATIC / "elevation.parquet").exists() and not ctx.force("appeears"):
-        ctx.note("appeears", OK, f"NDVI tüm {len(want)} tarlada var")
-    else:
-        run_cmd(ctx, "appeears", ["ml.data_load.appeears", "--areas", str(areas), "--start", ctx.a.start,
-                                  "--end", ctx.a.end, "--out", str(RAW), "--static-out", str(STATIC),
-                                  "--products", ctx.a.appeears_products, "--timeout-min", str(ctx.a.appeears_timeout)])
-    for src, hint, label in (("MOD13Q1", "NDVI", "NDVI (Terra)"), ("MYD13Q1", "NDVI", "NDVI (Aqua)"),
-                             ("MOD11A2", "LST", "yüzey sıcaklığı"), ("MOD16A2GF", "et", "MODIS ET"),
-                             ("SPL4SMGP", "sm_", "SMAP toprak nemi")):
-        cov = raw_coverage(src, hint)
-        got = want & set(cov)
-        st = OK if got == want else (WARN if got else FAIL)
-        ctx.note("appeears", st, f"{label}: {len(got)}/{len(want)} tarla")
-    ndvi = set(raw_coverage("MOD13Q1", "NDVI")) | set(raw_coverage("MYD13Q1", "NDVI"))
-    if not want <= ndvi:
-        ctx.todo.append("AppEEARS işi bitmemiş olabilir (sunucuda saatler sürebilir). Daha sonra tekrar: "
-                        "uv run python -m ml.run_all --only appeears,build,train,verify  (işler kaldığı yerden devam eder)")
-    return bool(want & ndvi)
+        ctx.note("appeears", WARN, "AppEEARS atlandı; model SMAP/LST/ET olmadan eğitilecek")
+        return True
+    run_cmd(ctx, "appeears", ["ml.data_load.appeears", "--areas", str(areas), "--start", ctx.a.start,
+                              "--end", ctx.a.end, "--out", str(RAW), "--static-out", str(STATIC),
+                              "--products", ctx.a.appeears_products, "--timeout-min", str(ctx.a.appeears_timeout)])
+    for src, hint, label in checks:
+        got = want & set(raw_coverage(src, hint))
+        ctx.note("appeears", OK if got == want else WARN, f"{label}: {len(got)}/{len(want)} tarla")
+    if not all(want <= set(raw_coverage(src, hint)) for src, hint, _ in checks):
+        ctx.todo.append("AppEEARS işleri bitmemiş olabilir (sunucuda saatler sürebilir). Sonra: "
+                        "uv run python -m ml.run_all --only appeears,build,train,verify (kaldığı yerden devam eder)")
+    return True
 
 
 def step_usda(ctx: Ctx) -> bool:
@@ -481,7 +539,7 @@ def main(argv=None) -> int:
     ap.add_argument("--check-only", action="store_true", help="indirme/eğitim yok: ön kontrol + envanter")
     ap.add_argument("--areas", help="alan dosyası (varsayılan: areas.us.json, yoksa areas.example.json)")
     ap.add_argument("--max-fields", type=int, help="deneme için ilk N tarla")
-    ap.add_argument("--start", default="2024-01-01")
+    ap.add_argument("--start", default="2018-01-01")
     ap.add_argument("--end", default="2025-12-31")
     ap.add_argument("--appeears-products", default=APPEEARS_PRODUCTS)
     ap.add_argument("--appeears-timeout", type=int, default=240, help="AppEEARS bekleme süresi (dk)")
@@ -502,7 +560,8 @@ def main(argv=None) -> int:
         return 0
 
     steps = [s for s in (a.only.split(",") if a.only else STEPS) if s and s not in a.skip.split(",")]
-    funcs = {"preflight": preflight, "fields": step_fields, "power": step_power, "appeears": step_appeears,
+    funcs = {"preflight": preflight, "fields": step_fields, "power": step_power, "ndvi": step_ndvi,
+             "appeears": step_appeears,
              "usda": step_usda, "build": step_build, "train": step_train, "verify": step_verify}
     status = 0
     for s in steps:

@@ -221,7 +221,15 @@ def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: P
     df = df[df[TARGET].notna() & (df["target_observed"] > 0)].copy()
     df[FIT] = fit_target(df, mode)
     df = df[df[FIT].notna()]
-    train, valid, test = time_split(df, sc.get("valid_start", "2025-04-01"), sc.get("test_start", "2025-07-01"))
+    vs, ts = sc.get("valid_start", "2024-01-01"), sc.get("test_start", "2024-07-01")
+    train, valid, test = time_split(df, vs, ts)
+    split_note = f"sabit tarihler: doğrulama {vs}, test {ts}"
+    if len(train) < max(30, 0.3 * len(df)):  # veri bu tarihlere uymuyor (örn. yalnızca 2024-2025): zamana göre %70/%15/%15
+        tw = df["week"] + pd.to_timedelta(df["horizon_weeks"] * 7, unit="D")
+        vs, ts = (str(tw.quantile(q).date()) for q in (0.70, 0.85))
+        train, valid, test = time_split(df, vs, ts)
+        split_note = f"veri sabit tarihlere uymadı; zamana göre bölündü: doğrulama {vs}, test {ts}"
+        log.warning(split_note)
     if len(valid) < 10:  # doğrulama çok küçükse eğitimin son %15'i
         cut = train["week"].quantile(0.85)
         train, valid = train[train["week"] < cut], train[train["week"] >= cut]
@@ -255,7 +263,7 @@ def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: P
         "n_features": len(feats), "n_features_dropped": len(plan.dropped),
         "best_iteration": {"point": point.best_iteration, "quantile": quant.best_iteration},
         "conformal_q": cq,
-        "target_mode": mode,
+        "target_mode": mode, "split": split_note,
         "valid": evaluate("valid", valid, point, quant, feats, clim, cq, mode),
         "test_temporal": evaluate("test", test, point, quant, feats, clim, cq, mode),
         "area_holdout": area_cv(pd.concat([train, valid, test]), feats, params, device,
@@ -278,7 +286,7 @@ def run(features_path: str, cfg: dict, local_path: str | None = None, out_dir: P
         out / "importance.csv", index=False)
     schema = {
         "schema_version": F.SCHEMA_VERSION, "target": TARGET, "horizon_weeks": int(df["horizon_weeks"].iloc[0]),
-        "target_mode": mode, "features": feats, "dtypes": {c: "float64" for c in feats}, "quantiles": quantiles,
+        "target_mode": mode, "split": split_note, "features": feats, "dtypes": {c: "float64" for c in feats}, "quantiles": quantiles,
         "prune": plan.to_dict(), "model_version": ts, "conformal_q": cq, "device": device,
         "synthetic_input": synthetic,
     }
