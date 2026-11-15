@@ -1,5 +1,5 @@
-# NASA SPACE APPS 2026 BufaloAI Project
-Main repository of BufaloAI Team in NASA Space Apps 2026
+# Bufalo Agriculture Intelligence
+Main repository of the [BufaloAI Team](https://www.spaceappschallenge.org/2026/find-a-team/bufaloai/?tab=details) in the [NASA Space Apps 2026 Hackathon](https://www.spaceappschallenge.org/2026/find-a-team/bufaloai/?tab=project).
 
 ## Demonstration and Video
 [Intro video](https://youtu.be/oc4Ua7wZ3FQ), [demonstration video](https://youtu.be/BWCvrFp-V7s), and [presentation](https://drive.google.com/file/d/1LPI9Td-g9kwZl0uZyH40uGW4RfWEEd5s/view?usp=sharing).
@@ -15,3 +15,7 @@ Main repository of BufaloAI Team in NASA Space Apps 2026
 - `frontend/`: ilk taslak notlar
 
 Backend'i çalıştırmak için [`backend/README.md`](backend/README.md), frontend yazanlar için ise [`backend/frontend-spec.md`](backend/frontend-spec.md).
+
+## AI Disclosure
+All of the code inside this repository is either AI-generated or AI-polished.
+Further disclosure can be found inside the application in [Space Apps Application]()
