@@ -291,7 +291,11 @@ class ParcelService:
         existing_source = "çiftçi" if existing else None
         if not existing and rot_info.get("rotation") and rot_info.get("confidence", 0) >= 0.5:
             existing, existing_source = rot_info["rotation"], "USDA CDL"
-            warnings.append(f"Mevcut rotasyon USDA CDL ürün haritasından otomatik çıkarıldı: {existing} "
+            names = ROT.catalog()["crops"]
+            seq_tr = " → ".join(names.get(c, {}).get("name", c) for c in ROT.parse_rotation(existing))
+            if "→" not in seq_tr:
+                seq_tr = f"sürekli {seq_tr.lower()} (monokültür)"
+            warnings.append(f"Mevcut rotasyon USDA CDL ürün haritasından otomatik çıkarıldı: {seq_tr} "
                             f"(eminlik {rot_info['confidence']:.2f}); yanlışsa çiftçi düzeltmeli.")
         if missing:
             warnings.append(f"Modelin kullandığı {len(missing)} özellik bu parsel için yok (örn. {missing[0]}); "
