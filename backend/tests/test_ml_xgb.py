@@ -163,9 +163,10 @@ def test_analysis_produces_real_layers_and_progress(client):
 
 def test_cache_reused_and_rescore_updates_bots(client):
     sid, _ = start(client)
-    assert client.calls == {"power": 1, "ndvi": 0, "planetary": 1}  # NDVI Planetary'den, ORNL'ye gerek yok
-    start(client, sid)  # aynı gün aynı parsel -> önbellek
-    assert client.calls == {"power": 1, "ndvi": 0, "planetary": 1}
+    # POWER iki kez: parsel verisi + hava görünümü için uzun geçmiş. NDVI Planetary'den, ORNL'ye gerek yok
+    assert client.calls == {"power": 2, "ndvi": 0, "planetary": 1}
+    start(client, sid)  # aynı gün aynı parsel -> önbellek (görünüm dahil)
+    assert client.calls == {"power": 2, "ndvi": 0, "planetary": 1}
 
     r = client.post("/api/rotations", json={"session_id": sid, "chosen_rotation": "sorghum>soybean>winter_wheat",
                                             "existing_rotation": "corn>soybean"})
@@ -269,3 +270,83 @@ def test_ndvi_label():
     from ml.service import ndvi_label
 
     assert "çok seyrek" in ndvi_label(0.27) and "yoğun, sağlıklı" in ndvi_label(0.85)
+
+
+LENTIL = {"id": "custom_lentil", "name": "Mercimek", "family": "fabaceae", "season": "cool", "water_need": 0.3,
+          "drought_tol": 0.7, "n_fix": True, "market": 0.75, "yield_t_ha": 1.6, "price_per_t": 30000,
+          "cost_per_ha": 20000}
+
+
+def test_farmer_crops_and_rotations_are_scored(client):
+    sid, ev = start(client, custom_crops=[LENTIL],
+                    custom_rotations=[{"name": "Mısır-mercimek", "seq": "corn>custom_lentil"}])
+    done = next(e for e in ev if e.get("stage") == "ml" and e.get("status") == "done")
+    ozel = next(lay for lay in done["layers"] if lay["name"] == "rotasyon_ozel_1")
+    assert ozel["details"]["source"] == "çiftçi" and "Mercimek" in " ".join(ozel["details"]["sequence_names"])
+    msgs = {m[0]["content"].split("'")[1]: m[1]["content"] for m in client.app.state.llm.calls}
+    assert "Çiftçinin oluşturduğu rotasyon" in msgs["Rotasyon Danışmanı"]
+    # yeniden puanlamada ürün listesi değişebilir; ürünü kaldırınca onu kullanan rotasyon da gönderilmemeli
+    r = client.post("/api/rotations", json={"session_id": sid, "custom_crops": [LENTIL],
+                                            "custom_rotations": [{"name": "Mercimek-sorgum",
+                                                                  "seq": "custom_lentil>sorghum"}]})
+    assert r.status_code == 200, r.text
+    assert any(lay["details"]["name"] == "Mercimek-sorgum" for lay in r.json()["layers"])
+    bad = client.post("/api/rotations", json={"session_id": sid, "custom_rotations": [{"name": "x",
+                                                                                        "seq": "corn>teff"}],
+                                              "custom_crops": []})
+    assert bad.status_code == 422 and "teff" in bad.json()["detail"]
+
+
+def test_custom_crop_schema_rejected(client):
+    sid = client.post("/api/session").json()["session_id"]
+    r = client.post("/api/analysis", json={"session_id": sid, "polygon": IOWA,
+                                           "custom_crops": [{"id": "Bad Id", "name": "x"}]})
+    assert r.status_code == 422
+
+
+def test_catalog_exposes_crop_fields(client):
+    cat = client.get("/api/rotations/catalog").json()
+    assert "water_need" in cat["crop_fields"]["floats_0_1"] and "yield_t_ha" in cat["crop_fields"]["economics"]
+    corn = next(c for c in cat["crops"] if c["id"] == "corn")
+    assert 0 <= corn["profile"]["water_need"] <= 1
+
+
+def test_english_mode_and_crop_suggestions(client):
+    sid, ev = start(client, lang="en")
+    systems = [m[0]["content"] for m in client.app.state.llm.calls]
+    assert all("answer in clear, short English" in s for s in systems)
+    data = [m[1]["content"] for m in client.app.state.llm.calls]
+    assert all(d.startswith("Parcel: about") and d.endswith("in English.") for d in data)
+    assert all("Mısır" not in d and "Soya" not in d for d in data)  # rotasyon verisi İngilizce ürün adlarıyla
+    assert any("Rotation suggestion #1" in d for d in data) and any("confidence" in d for d in data)
+    done = next(e for e in ev if e.get("stage") == "ml" and e.get("status") == "done")
+    meta = done["layers"][0]["details"]["_meta"]
+    assert meta["disclaimer_en"].startswith("This ranking") and meta["information_gaps_en"]
+    rot = next(lay for lay in done["layers"] if lay["name"] == "rotasyon_1")["details"]
+    assert rot["name_en"] and rot["label_en"].endswith("(0-100 points)") and rot["sequence_names_en"]
+    assert all("risk_en" in d and "impact_en" in d for d in rot["damages"])
+    ask = client.post("/api/ask", json={"session_id": sid, "message": "Why?", "lang": "en"})
+    assert ask.status_code == 202
+    events(client, ask.json()["job_id"], sid)
+    assert client.app.state.llm.calls[-1][-1]["content"].endswith("Answer in English.")
+
+    sug = client.get("/api/crops/suggestions", params={"session_id": sid, "exclude": "corn,barley"})
+    assert sug.status_code == 200, sug.text
+    items = sug.json()
+    assert items and all(i["id"] not in ("corn", "barley") for i in items)
+    assert items == sorted(items, key=lambda i: -i["fit"]) and all(i["name_en"] for i in items)
+    agents = client.get("/api/agents").json()
+    assert agents[0]["name_en"] == "Risk & Climate Analyst"
+
+
+def test_suggestions_need_analysis(client):
+    sid = client.post("/api/session").json()["session_id"]
+    assert client.get("/api/crops/suggestions", params={"session_id": sid}).status_code == 409
+
+
+def test_catalog_has_library_and_english_names(client):
+    cat = client.get("/api/rotations/catalog").json()
+    lib = {c["id"]: c for c in cat["library"]}
+    assert "lentil" in lib and lib["lentil"]["name_en"] == "Lentil" and lib["lentil"]["profile"]["n_fix"] is True
+    assert all(c["name_en"] for c in cat["crops"]) and all(r["name_en"] for r in cat["rotations"])
+    assert all(p["label_en"] for p in cat["priorities"])

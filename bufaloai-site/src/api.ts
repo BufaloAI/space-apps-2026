@@ -25,6 +25,27 @@ export type RotationDetails = {
   expected_yield_loss_pct?: Record<string, [number, number]>
   risks_for_local_review?: string[]
   delta_vs_existing?: { score: number; risk: number }
+  source?: 'katalog' | 'otomatik' | 'çiftçi' | string
+  rank?: number
+  economics?: {
+    per_season: { crop: string; gross_margin: number; expected_yield_t_ha?: number }[]
+    mean_gross_margin_per_ha: number
+    note: string
+  }
+}
+export type OutlookVar = { p10: number; p50: number; p90: number; normal: number }
+export type Outlook = {
+  issued_from: string
+  history_years: number
+  history_start: string
+  weeks: { week: number; start: string; end: string; vars: Record<string, OutlookVar> }[]
+  skill: Record<string, (number | null)[]>
+  interval_coverage: Record<string, (number | null)[]>
+  variables: Record<string, { label: string; unit: string; aggregation: 'mean' | 'sum' }>
+  method: string
+  confidence?: Record<string, number>
+  lat?: number
+  lon?: number
 }
 export type Meta = {
   warnings?: string[]
@@ -47,7 +68,7 @@ export type Layer = {
   note?: string
   details?: (RotationDetails & { _meta?: Meta; [k: string]: unknown }) | null
 }
-export type Agent = { id: string; name: string; layers: string[] }
+export type Agent = { id: string; name: string; name_en?: string; layers: string[] }
 export type Parcel = { area_ha: number; centroid: [number, number] }
 export type SessionStatus =
   | { status: 'active'; idle_remaining: number | null; job_id: string | null; has_analysis: boolean }
@@ -88,10 +109,49 @@ export type JobSnapshot = {
   agents: AgentState[]
   error: string | null
 }
+export type CropProfile = {
+  water_need: number
+  drought_tol: number
+  heat_tol: number
+  frost_tol: number
+  residue_cover: number
+  om: number
+  market: number
+  forage: number
+  n_need: number
+  wet_tol: number
+  gdd_need: number
+  n_fix: boolean
+}
+/** A farmer's own crop (or a catalogue crop overridden under the same id). Stored in the browser. */
+export type CustomCrop = CropProfile & {
+  id: string
+  name: string
+  family: string
+  season: 'warm' | 'cool' | 'perennial' | 'none'
+  cover_crop: boolean
+  yield_t_ha?: number
+  price_per_t?: number
+  cost_per_ha?: number
+}
+export type CustomRotation = { name: string; seq: string }
+export type CatalogCrop = {
+  id: string
+  name: string
+  name_en?: string
+  family: string
+  season: string
+  cover_crop: boolean
+  profile?: Partial<CropProfile>
+  note?: string
+  note_en?: string
+}
 export type Catalog = {
-  crops: { id: string; name: string; family: string; season: string; cover_crop: boolean }[]
-  rotations: { id: string; name: string; sequence: string[] }[]
-  priorities: { id: string; label: string; default: number }[]
+  crops: CatalogCrop[]
+  library?: CatalogCrop[]
+  crop_fields?: { floats_0_1: string[]; seasons: string[]; economics: string[]; families: string[] }
+  rotations: { id: string; name: string; name_en?: string; sequence: string[] }[]
+  priorities: { id: string; label: string; label_en?: string; default: number }[]
   rotation_syntax: string
 }
 export type FarmProfile = {
@@ -105,6 +165,8 @@ export type RotationOptions = {
   chosen_rotation?: string
   priorities?: Record<string, number>
   profile?: FarmProfile
+  custom_crops?: CustomCrop[]
+  custom_rotations?: CustomRotation[]
 }
 
 // ---------------------------------------------------------------- errors
@@ -200,9 +262,32 @@ export const startAnalysis = (
   polygon: Polygon,
   date: string,
   options: RotationOptions = {},
-) => post<{ job_id: string }>('/api/analysis', { session_id: sid, polygon, date, ...options })
-export const askAgents = (sid: string, message: string, agent?: string) =>
-  post<{ job_id: string }>('/api/ask', { session_id: sid, message, agent: agent || undefined })
+  lang: 'tr' | 'en' = 'tr',
+) => post<{ job_id: string }>('/api/analysis', { session_id: sid, polygon, date, lang, ...options })
+export const askAgents = (sid: string, message: string, agent?: string, lang: 'tr' | 'en' = 'tr') =>
+  post<{ job_id: string }>('/api/ask', { session_id: sid, message, agent: agent || undefined, lang })
+
+export type CropSuggestion = {
+  id: string
+  name: string
+  name_en: string
+  from: 'library' | 'catalog'
+  fit: number
+  family: string
+  season: string
+  expected_yield_loss_pct: [number, number]
+  main_risk: string | null
+  main_risk_en: string | null
+  concerns: string[]
+  concerns_en: string[]
+  note?: string | null
+  note_en?: string | null
+}
+/** Crops that suit the last analysed field and are not in the farmer's list (needs an analysis). */
+export const cropSuggestions = (sid: string, exclude: string[]) =>
+  request<CropSuggestion[]>(
+    '/api/crops/suggestions?' + new URLSearchParams({ session_id: sid, exclude: exclude.join(',') }),
+  )
 export const jobSnapshot = (sid: string, jobId: string) =>
   request<JobSnapshot>(
     '/api/jobs/' + encodeURIComponent(jobId) + '?session_id=' + encodeURIComponent(sid),
@@ -321,5 +406,18 @@ export function climateYear(lat: number, lon: number, year: number): Promise<Cli
       })
   memory.set(key, p)
   p.catch(() => memory.delete(key))
+  return p
+}
+
+// ---------------------------------------------------------------- weather outlook (NASA POWER history, cached per day)
+const outlooks = new Map<string, Promise<Outlook>>()
+/** 4-week outlook for a point. The backend caches per day and 0.1° cell; this caches per page load. */
+export function climateOutlook(lat: number, lon: number): Promise<Outlook> {
+  const key = snap(lat) + '_' + snap(lon) + '_' + new Date().toISOString().slice(0, 10)
+  const hit = outlooks.get(key)
+  if (hit) return hit
+  const p = request<Outlook>('/api/climate/outlook?' + new URLSearchParams({ lat: snap(lat), lon: snap(lon) }))
+  outlooks.set(key, p)
+  p.catch(() => outlooks.delete(key))
   return p
 }

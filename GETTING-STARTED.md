@@ -95,6 +95,14 @@ site's address to `CORS_ORIGINS` in `backend/.env`.
   refreshed daily.
 - With no field selected, or if POWER is unreachable, the page shows the synthetic demo series and
   says so ("Demonstration data").
+- **Next 4 weeks** (climate page, below the chart): weekly temperature, minimum, rain, frost days, >35 °C days and
+  growing degree days for the field, each next to its seasonal normal. Built from 15 years of NASA POWER history
+  for that point. The note says honestly how much better than "normal for this time of year" it is.
+
+### Language
+The TR/EN switch in the header changes everything, including analysis results (the ML writes every text in both
+languages) and the advisors, who are asked to answer in the selected language. Switch **before** pressing
+Analyse or asking; an answer stays in the language it was written in.
 
 ### AI page (analysis + advisors)
 1. Open **AI intelligence**. The page joins a backend session automatically.
@@ -107,10 +115,24 @@ site's address to `CORS_ORIGINS` in `backend/.env`.
    - **Warnings** (satellite delay, missing sources) and the **disclaimer** stay visible.
    - **Two advisors** write side by side (Risk & climate, Rotation). Each shows which data it sees.
 4. **Ask a follow-up** below the advisors, to both of them or to one.
-5. **Rotations**: suggestion cards with score, risk, estimated yield losses and benefits.
-   Under **Evaluate my own rotation**, pick a rotation and set priority sliders, then **Re-score**.
-   This is instant, and the rotation advisor sees your choice on the next question.
-   **Information gaps** lists what is unknown; add it in **Farmer's data** to raise confidence.
+5. **Rotations**: suggestion cards with score, risk, estimated yield losses and benefits. Each card says where it
+   came from: *catalogue* (common practice), *auto-generated* (built from crop rules, not in the fixed list) or
+   *yours*. The best catalogue rotation is always among the three suggestions. Below the cards there are three tabs:
+   - **Evaluate**: pick a rotation, set priority sliders, **Re-score** (instant).
+   - **Build a rotation**: add seasons (main crop + optional cover crop), name it, **Save rotation**. Saved
+     rotations are scored in every analysis and show their rank among all candidates. **Evaluate now** scores
+     the draft immediately.
+   - **My crops**: add a crop that is not listed, or **Copy and edit** a catalogue crop. Set its traits (0–1
+     sliders) and optionally your own yield, price and cost; rotation cards then show your gross margin with
+     estimated losses subtracted.
+   Crops and rotations are stored in this browser and sent with each analysis. They are managed on the
+   **Crops & rotations** page (sidebar), which works any time, even before an analysis:
+   - **My crops**: your crops, editable; **Crop library**: 20 ready-made crops (barley, lentil, potato, canola,
+     sugar beet, rice, …) added with one click; **Suggested for my field**: crops that fit the last analysed
+     field's climate and are not in your list, with fit score and main risk; **My rotations**: the builder.
+   - The AI page also shows the suggestions under the rotation cards.
+   **Information gaps** lists what is unknown or only estimated; add it in **Farmer's data** to raise confidence.
+   Outside the US, soil and slope are computed from SoilGrids and an elevation model and marked "estimated".
 6. The session closes after **5 minutes of inactivity** (a warning with a **Stay** button appears
    at 60 s). Closing the tab or **Leave session** frees the slot for the next person.
 
@@ -152,7 +174,8 @@ Frontend code: `src/api.ts` (client and climate cache), `src/backend.tsx` (sessi
 | Climate page says "Demonstration data" with a field selected, backend log shows `handshake operation timed out` | See **IPv6** below |
 | Analysis is slow (1–2 min) | MODIS NDVI service is slow; same field on the same day is cached |
 | "Wait for the current job to finish" | One job at a time; wait for the bots to finish |
-| Advisor shows "Model server unreachable" | vLLM GPU machine or Tailscale is down; the other advisor keeps working |
+| English mode: an advisor answers in Turkish | Rare; ask again. Advisors get English data and are told to answer in English |
+| Both advisors show "Model server unreachable" | Tailscale is down on this PC or the GPU machine: `sudo systemctl enable --now tailscaled`, then `tailscale status` |
 | `Cannot find module @rollup/rollup-linux-x64-gnu` | Run `npm ci` in `bufaloai-site/` on this machine |
 
 ### IPv6 handshake timeouts (seen 2026-11-15)
@@ -172,3 +195,63 @@ echo 'precedence ::ffff:0:0/96  100' | sudo tee -a /etc/gai.conf
 systemctl --user restart space-backend
 ```
 Remove that line later if the IPv6 route gets fixed.
+
+
+---
+
+## 7. Hosting on the GPU laptop (Linux), public link
+
+Goal: the laptop runs the backend **and** serves the built site on one port; the language model stays on the
+GPU server (reached over Tailscale); a Cloudflare tunnel gives a public `https://…trycloudflare.com` link.
+
+```
+visitors ──https──► Cloudflare tunnel ──► laptop :8000 (FastAPI: site + /api + ML) ──Tailscale──► vLLM GPU server
+```
+
+### Once, on the laptop
+
+1. **Repository** up to date (`git pull`). The trained model is already there if you trained on this laptop:
+   `ml/runs/LATEST` must point to a run folder that contains `model.ubj`.
+2. **Secrets**: copy `backend/.env` from the current host (USB/scp; it holds `VLLM_API_KEY`, never commit it).
+   It must contain `ML_PROVIDER=xgboost`. The setup script adds `SITE_DIR=bufaloai-site/dist`.
+3. **Tools**: [uv](https://docs.astral.sh/uv/), Node.js 22.12+, Tailscale, and for the public link
+   [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/).
+4. **Tailscale**: `sudo systemctl enable --now tailscaled && sudo tailscale up`, logged into the **same tailnet**
+   as the GPU server. Check: `tailscale status` lists the server.
+5. **IPv6 trap** (only if your network has it): if `curl -6 https://power.larc.nasa.gov/` hangs while
+   `curl -4 …` works, run `echo 'precedence ::ffff:0:0/96  100' | sudo tee -a /etc/gai.conf`.
+
+### Run the setup script
+
+```bash
+backend/scripts/setup-host.sh --check     # only checks; every ✗ line says how to fix it
+backend/scripts/setup-host.sh --tunnel    # installs, builds, starts everything, prints the public link
+sudo loginctl enable-linger $USER         # so the services start at boot without logging in
+```
+
+It checks uv/Node/.env/model/Tailscale/the language model/IPv6, runs `uv sync`, `npm ci`, `npm run build`, and
+installs two systemd user services:
+
+| Service | What | Commands |
+|---|---|---|
+| `space-backend` | site + API on `http://127.0.0.1:8000` | `systemctl --user restart space-backend`, logs: `journalctl --user -u space-backend -f` |
+| `space-tunnel` | public link (only with `--tunnel`) | link: `journalctl --user -u space-tunnel \| grep trycloudflare` |
+
+Without the script, by hand:
+
+```bash
+uv sync
+(cd bufaloai-site && npm ci && npm run build)
+SITE_DIR=bufaloai-site/dist uv run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000 --workers 1
+cloudflared tunnel --url http://127.0.0.1:8000        # in a second terminal: prints the public link
+```
+
+### Good to know
+- **One user at a time.** Visitors beyond the first wait in the queue ("Your place in line"). Fine for a demo.
+- The quick-tunnel **link changes every time the tunnel restarts**. For a fixed address, create a named tunnel
+  in a (free) Cloudflare account, or use `tailscale funnel 8000` (link stays `https://<laptop>.<tailnet>.ts.net`).
+- There is **no login**: anyone with the link can use the site. The API key never leaves the laptop.
+- After a code change: `git pull`, `(cd bufaloai-site && npm run build)`, `systemctl --user restart space-backend`.
+- Development with hot reload still works as before: `npm run dev` on port 5180 (proxies `/api` to 8000).
+- Run only one host at a time (this PC **or** the laptop). Each backend admits one user, but two backends would
+  both send work to the single GPU server. On the old host: `systemctl --user disable --now space-backend`.

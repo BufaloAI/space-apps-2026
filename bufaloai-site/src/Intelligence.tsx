@@ -1,5 +1,6 @@
 // AI page: field analysis (ML) → N bots side by side → follow-up questions → farmer's own rotation.
 // Everything numeric (risk, confidence level, ranking) comes from the backend; this only displays it.
+// Backend content is bilingual (`*_en` fields); `pick` chooses by the UI language.
 import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import {
   AlertTriangle,
@@ -14,24 +15,31 @@ import {
   RefreshCw,
   Send,
   ShieldCheck,
+  Sprout,
   X,
 } from 'lucide-react'
 import { useBackend, profileOf, type Analysis } from './backend'
-import { rotationCatalog, type Catalog, type Layer, type Progress, type RotationOptions } from './api'
+import type { Catalog, Layer, Meta, Outlook, Progress, RotationOptions } from './api'
 import { FieldForm } from './FieldForm'
-import { hectares, type Field, type Translate } from './model'
+import { CropSuggestions } from './FarmerTools'
+import { OutlookTable } from './Outlook'
+import { farmerOptions, useCatalog, useCustomCrops, useCustomRotations } from './farmerData'
+import { COMPONENTS, LEVEL, layerName, pick, pickList, serverText, unitText } from './i18n'
+import { hectares, type Field, type Language, type Translate } from './model'
 
 type Props = {
   t: Translate
-  lang: string
+  lang: Language
   fields: Field[]
   setFields: Dispatch<SetStateAction<Field[]>>
   selected: string
   select: (id: string) => void
   goFields: () => void
+  goPlanner: () => void
 }
 
 const today = () => new Date().toISOString().slice(0, 10)
+const levelText = (lang: Language, l: string) => (LEVEL[l] ? LEVEL[l][lang === 'en' ? 1 : 0] : l)
 
 export function ConfidenceBadge({ layer, t }: { layer: Pick<Layer, 'confidence' | 'confidence_level'>; t: Translate }) {
   // The level comes from the backend; we only map it to a colour.
@@ -62,7 +70,8 @@ function progressSteps(progress: Progress[], t: Translate) {
   const names: Record<string, string> = {
     'data:weather': t('İklim verisi (NASA POWER)', 'Climate data (NASA POWER)'),
     'data:ndvi': t('Uydu bitki örtüsü (MODIS NDVI)', 'Satellite vegetation (MODIS NDVI)'),
-    'data:soil': t('Toprak (SSURGO)', 'Soil (SSURGO)'),
+    'data:soil': t('Toprak ve eğim (SSURGO ya da SoilGrids + yükseklik)', 'Soil and slope (SSURGO or SoilGrids + elevation)'),
+    'data:outlook': t('Hava görünümü (15 yıllık NASA POWER)', 'Weather outlook (15-year NASA POWER)'),
     'data:crop_history': t('Ürün geçmişi (CDL)', 'Crop history (CDL)'),
     features: t('Özellikler', 'Features'),
     model: t('NDVI tahmini (XGBoost)', 'NDVI forecast (XGBoost)'),
@@ -91,11 +100,7 @@ function Steps({ a, running, t }: { a: Analysis; running: boolean; t: Translate 
       <li className="done">
         <Check size={14} />
         {t('Parsel doğrulandı', 'Parcel validated')}
-        {a.parcel && (
-          <small>
-            {a.parcel.area_ha.toLocaleString(undefined, { maximumFractionDigits: 2 })} ha
-          </small>
-        )}
+        {a.parcel && <small>{a.parcel.area_ha.toLocaleString(undefined, { maximumFractionDigits: 2 })} ha</small>}
       </li>
       {steps.map((s) => (
         <li key={s.key} className={s.status === 'failed' ? 'failed' : s.status === 'started' ? 'busy' : 'done'}>
@@ -127,21 +132,26 @@ function fmt(n: number, unit: string) {
   return n.toLocaleString(undefined, { maximumFractionDigits: d }) + (unit ? ' ' + unit : '')
 }
 
-function LayerCard({ layer, t }: { layer: Layer; t: Translate }) {
+function LayerCard({ layer, t, lang }: { layer: Layer; t: Translate; lang: Language }) {
   const det = layer.details ?? {}
-  const comps = (det as { risk?: { components?: Record<string, { score: number; level: string }> } }).risk
-    ?.components
+  // Component scores are 0–1 from the backend; shown on the same 0–100 scale as the overall risk.
+  const comps = (det as { risk?: { components?: Record<string, { score: number | null; level: string }> } })
+    .risk?.components
+  const outlook = (det as { outlook?: Outlook }).outlook
   const forecast = (det as { forecast?: { target_week?: string; is_nowcast?: boolean } }).forecast
+  const unit = unitText(lang, layer.unit)
+  const label = lang === 'en' ? ((det as { label_en?: string }).label_en ?? layer.label) : layer.label
+  const note = lang === 'en' ? (det as { note_en?: string }).note_en : layer.note
   return (
     <section className={'layer-card' + (layer.confidence_level === 'düşük' ? ' is-low' : '')}>
       <header>
-        <h3>{layer.label}</h3>
+        <h3>{label}</h3>
         <ConfidenceBadge layer={layer} t={t} />
       </header>
-      <strong>{fmt(layer.mean, layer.unit)}</strong>
+      <strong>{fmt(layer.mean, unit)}</strong>
       {layer.min !== layer.max && (
         <small>
-          {t('aralık', 'range')} {fmt(layer.min, '')} – {fmt(layer.max, layer.unit)}
+          {t('aralık', 'range')} {fmt(layer.min, '')} – {fmt(layer.max, unit)}
         </small>
       )}
       {forecast?.target_week && (
@@ -156,34 +166,48 @@ function LayerCard({ layer, t }: { layer: Layer; t: Translate }) {
         <ul className="components">
           {Object.entries(comps).map(([k, v]) => (
             <li key={k}>
-              <span>{k.replace(/_/g, ' ')}</span>
-              <b>{Math.round(v.score)}</b>
+              <span>{COMPONENTS[k] ? COMPONENTS[k][lang === 'en' ? 1 : 0] : k.replace(/_/g, ' ')}</span>
+              <b>{v.score === null ? '—' : Math.round(v.score * 100)}</b>
               <Severity s={v.level} t={t} />
             </li>
           ))}
         </ul>
       )}
-      {layer.note && <small className="note">{layer.note}</small>}
+      {outlook && <OutlookTable o={outlook} t={t} />}
+      {note && !outlook && !comps && <small className="note">{note}</small>}
     </section>
   )
 }
 
-function RotationCard({ layer, t }: { layer: Layer; t: Translate }) {
+function RotationCard({ layer, t, lang }: { layer: Layer; t: Translate; lang: Language }) {
   const d = layer.details ?? {}
   const tag =
     layer.name === 'rotasyon_mevcut'
       ? t('Mevcut rotasyonunuz', 'Your current rotation')
       : layer.name === 'rotasyon_secilen'
         ? t('Sizin seçiminiz', 'Your choice')
-        : t('Öneri', 'Suggestion') + ' ' + layer.name.split('_')[1]
+        : layer.name.startsWith('rotasyon_ozel')
+          ? t('Sizin rotasyonunuz', 'Your rotation') + (d.rank ? ' · ' + t('sıra', 'rank') + ' ' + d.rank : '')
+          : t('Öneri', 'Suggestion') + ' ' + layer.name.split('_')[1]
+  const src =
+    d.source === 'otomatik'
+      ? t('otomatik üretildi', 'auto-generated')
+      : d.source === 'çiftçi'
+        ? t('sizin', 'yours')
+        : t('katalog', 'catalogue')
+  const seq = pickList(lang, d, 'sequence_names')
+  const why = [...pickList(lang, d, 'why'), ...pickList(lang, d, 'benefits')]
+  const review = pickList(lang, d, 'risks_for_local_review')
   return (
     <section className={'rotation-card' + (layer.confidence_level === 'düşük' ? ' is-low' : '')}>
       <header>
-        <small>{tag}</small>
+        <small>
+          {tag} · <i className={'src src-' + (d.source ?? 'katalog')}>{src}</i>
+        </small>
         <ConfidenceBadge layer={layer} t={t} />
       </header>
-      <h3>{d.name ?? layer.label}</h3>
-      {d.sequence_names && <p className="sequence">{d.sequence_names.join(' → ')}</p>}
+      <h3>{pick(lang, d, 'name') || layer.label}</h3>
+      {!!seq.length && <p className="sequence">{seq.join(' → ')}</p>}
       <div className="scores">
         <span>
           {t('Puan', 'Score')} <b>{Math.round(layer.mean)}</b>/100
@@ -196,10 +220,18 @@ function RotationCard({ layer, t }: { layer: Layer; t: Translate }) {
         {d.delta_vs_existing && (
           <span className={d.delta_vs_existing.score >= 0 ? 'up' : 'down'}>
             {t('mevcuda göre', 'vs current')} {d.delta_vs_existing.score >= 0 ? '+' : ''}
-            {Math.round(d.delta_vs_existing.score)}
+            {Math.round(d.delta_vs_existing.score * 100)}
           </span>
         )}
       </div>
+      {d.economics && (
+        <p className="econ-line">
+          {t('Sizin hesabınızla brüt kâr', 'Gross margin, your figures')}:{' '}
+          <b>{d.economics.mean_gross_margin_per_ha.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b>
+          {' /ha · '}
+          {t('sezon ortalaması, tahmini kayıp düşüldü', 'per-season mean, estimated losses subtracted')}
+        </p>
+      )}
       {!!d.damages?.length && (
         <>
           <h4>{t('Olası zararlar (tahmini)', 'Possible damages (estimated)')}</h4>
@@ -208,34 +240,33 @@ function RotationCard({ layer, t }: { layer: Layer; t: Translate }) {
               <li key={i}>
                 <Severity s={x.severity} t={t} />
                 <span>
-                  <b>{x.risk}</b> · {x.affects}
+                  <b>{pick(lang, x, 'risk')}</b> · {pick(lang, x, 'affects')}
                   {x.yield_loss_pct && (
                     <em>
                       {' '}
-                      {t('tahmini verim kaybı', 'est. yield loss')} %{x.yield_loss_pct[0]}–
-                      {x.yield_loss_pct[1]}
+                      {t('tahmini verim kaybı', 'est. yield loss')} %{x.yield_loss_pct[0]}–{x.yield_loss_pct[1]}
                     </em>
                   )}
-                  <small>{x.impact}</small>
+                  <small>{pick(lang, x, 'impact')}</small>
                 </span>
               </li>
             ))}
           </ul>
         </>
       )}
-      {(!!d.benefits?.length || !!d.why?.length) && (
+      {!!why.length && (
         <details>
           <summary>{t('Neden ve faydalar', 'Why and benefits')}</summary>
           <ul>
-            {[...(d.why ?? []), ...(d.benefits ?? [])].map((s, i) => (
+            {why.map((s, i) => (
               <li key={i}>{s}</li>
             ))}
           </ul>
-          {!!d.risks_for_local_review?.length && (
+          {!!review.length && (
             <>
               <h4>{t('Yerelde kontrol edin', 'Check locally')}</h4>
               <ul>
-                {d.risks_for_local_review.map((s, i) => (
+                {review.map((s, i) => (
                   <li key={i}>{s}</li>
                 ))}
               </ul>
@@ -249,31 +280,25 @@ function RotationCard({ layer, t }: { layer: Layer; t: Translate }) {
 
 function RotationForm({
   t,
+  lang,
   field,
   busy,
+  catalog,
+  weights,
+  setWeights,
   onSubmit,
 }: {
   t: Translate
+  lang: Language
   field: Field | undefined
   busy: boolean
+  catalog: Catalog
+  weights: Record<string, number>
+  setWeights: Dispatch<SetStateAction<Record<string, number>>>
   onSubmit: (o: RotationOptions) => Promise<unknown>
 }) {
-  const [catalog, setCatalog] = useState<Catalog | null>(null)
-  const [failed, setFailed] = useState(false)
   const [chosen, setChosen] = useState('')
-  const [weights, setWeights] = useState<Record<string, number>>({})
   const [sending, setSending] = useState(false)
-  useEffect(() => {
-    rotationCatalog()
-      .then((c) => {
-        setCatalog(c)
-        setWeights(Object.fromEntries(c.priorities.map((p) => [p.id, p.default])))
-      })
-      .catch(() => setFailed(true))
-  }, [])
-  if (failed)
-    return <p className="hint">{t('Rotasyon kataloğu alınamadı.', 'Rotation catalogue unavailable.')}</p>
-  if (!catalog) return null
   return (
     <form
       className="rotation-form"
@@ -293,14 +318,13 @@ function RotationForm({
         }
       }}
     >
-      <h3>{t('Kendi rotasyonumu değerlendir', 'Evaluate my own rotation')}</h3>
       <label>
         {t('Rotasyon', 'Rotation')}
         <select value={chosen} onChange={(e) => setChosen(e.target.value)}>
           <option value="">{t('Yalnızca öncelikleri güncelle', 'Only update priorities')}</option>
           {catalog.rotations.map((r) => (
             <option key={r.id} value={r.id}>
-              {r.name}
+              {pick(lang, r, 'name')}
             </option>
           ))}
         </select>
@@ -309,7 +333,7 @@ function RotationForm({
         <legend>{t('Öncelikleriniz (0–5)', 'Your priorities (0–5)')}</legend>
         {catalog.priorities.map((p) => (
           <label key={p.id} className="slider">
-            <span>{p.label}</span>
+            <span>{pick(lang, p, 'label')}</span>
             <input
               type="range"
               min={0}
@@ -389,12 +413,7 @@ function Gate({ t }: { t: Translate }) {
       )}
       {b.phase === 'offline' && (
         <>
-          <p>
-            {t(
-              'Sunucuya ulaşılamadı. Backend çalışıyor olmalı (localhost:8000).',
-              'Cannot reach the server. The backend must be running (localhost:8000).',
-            )}
-          </p>
+          <p>{t('Sunucuya ulaşılamadı. Backend çalışıyor olmalı.', 'Cannot reach the server. The backend must be running.')}</p>
           <button className="primary" onClick={b.connect}>
             <RefreshCw size={15} />
             {t('Tekrar dene', 'Try again')}
@@ -414,7 +433,7 @@ function Gate({ t }: { t: Translate }) {
   )
 }
 
-function AskBox({ t }: { t: Translate }) {
+function AskBox({ t, lang }: { t: Translate; lang: Language }) {
   const b = useBackend()
   const [text, setText] = useState('')
   const [target, setTarget] = useState('')
@@ -451,7 +470,7 @@ function AskBox({ t }: { t: Translate }) {
           <option value="">{t('Tüm botlara', 'All advisors')}</option>
           {b.agents.map((a) => (
             <option key={a.id} value={a.id}>
-              {t('Yalnız', 'Only')} {a.name}
+              {t('Yalnız', 'Only')} {pick(lang, a, 'name')}
             </option>
           ))}
         </select>
@@ -464,7 +483,7 @@ function AskBox({ t }: { t: Translate }) {
   )
 }
 
-function Agents({ t }: { t: Translate }) {
+function Agents({ t, lang }: { t: Translate; lang: Language }) {
   const b = useBackend()
   const agents = b.agents.length ? b.agents : (b.rounds[0]?.agents ?? [])
   if (!b.rounds.length) return null
@@ -473,10 +492,10 @@ function Agents({ t }: { t: Translate }) {
       {agents.map((a) => (
         <section key={a.id} className="agent">
           <header>
-            <h3>{a.name}</h3>
+            <h3>{pick(lang, a, 'name')}</h3>
             <div className="chips">
               {a.layers.map((l) => (
-                <span key={l}>{l}</span>
+                <span key={l}>{layerName(lang, l)}</span>
               ))}
             </div>
           </header>
@@ -494,7 +513,7 @@ function Agents({ t }: { t: Translate }) {
                     {t('yazıyor…', 'writing…')}
                   </p>
                 ) : null}
-                {s.status === 'error' && <p className="agent-error">{s.error}</p>}
+                {s.status === 'error' && <p className="agent-error">{serverText(lang, s.error)}</p>}
               </div>
             )
           })}
@@ -504,13 +523,52 @@ function Agents({ t }: { t: Translate }) {
   )
 }
 
-export default function Intelligence({ t, fields, setFields, selected, select, goFields }: Props) {
+function MetaWarnings({ meta, lang, t }: { meta: Meta; lang: Language; t: Translate }) {
+  const warnings = pickList(lang, meta, 'warnings')
+  const source = (k: string) =>
+    ({ weather: t('iklim', 'weather'), ndvi: 'NDVI' })[k] ?? k
+  return (
+    <div className="meta">
+      {!!warnings.length && (
+        <ul className="warnings">
+          {warnings.map((w, i) => (
+            <li key={i}>
+              <AlertTriangle size={14} />
+              {w}
+            </li>
+          ))}
+        </ul>
+      )}
+      {meta.data_as_of && (
+        <small>
+          {t('Veri tarihi', 'Data as of')}:{' '}
+          {Object.entries(meta.data_as_of)
+            .filter(([, v]) => v)
+            .map(([k, v]) => source(k) + ' ' + v)
+            .join(' · ')}
+        </small>
+      )}
+    </div>
+  )
+}
+
+export default function Intelligence({ t, lang, fields, setFields, selected, select, goFields, goPlanner }: Props) {
   const b = useBackend()
   const [date, setDate] = useState(today)
   const [editing, setEditing] = useState<Field | null>(null)
+  const [crops, setCrops] = useCustomCrops()
+  const [myRotations] = useCustomRotations()
+  const { catalog, failed: catalogFailed } = useCatalog()
+  const [weights, setWeights] = useState<Record<string, number>>({})
   useEffect(() => {
     b.connect()
   }, [])
+  useEffect(() => {
+    if (catalog && !Object.keys(weights).length)
+      setWeights(Object.fromEntries(catalog.priorities.map((p) => [p.id, p.default])))
+  }, [catalog])
+  // Farmer's crops and saved rotations go with every analysis and re-score (they live in this browser).
+  const extra = () => farmerOptions(catalog, crops, myRotations)
   const field = fields.find((f) => f.id === selected) ?? fields[0]
   const running = b.job?.status === 'running'
   const a = b.analysis
@@ -518,19 +576,26 @@ export default function Intelligence({ t, fields, setFields, selected, select, g
   const plain = a?.layers.filter((l) => !l.name.startsWith('rotasyon_')) ?? []
   const rotations = a?.layers.filter((l) => l.name.startsWith('rotasyon_')) ?? []
   const analysedField = fields.find((f) => f.id === a?.fieldId)
+  const gaps = pickList(lang, meta, 'information_gaps')
 
   const check = (f: Field): string | null => {
     if (f.geometry.coordinates.length > 1)
       return t('Delikli poligonlar desteklenmiyor.', 'Polygons with holes are not supported.')
     const ha = hectares(f)
     if (ha < 0.01 || ha > 5000) return t('Alan 0,01–5000 ha olmalı.', 'Area must be 0.01–5000 ha.')
-    if (f.geometry.coordinates[0].length > 1001)
-      return t('En fazla 1000 köşe olabilir.', 'At most 1000 vertices.')
+    if (f.geometry.coordinates[0].length > 1001) return t('En fazla 1000 köşe olabilir.', 'At most 1000 vertices.')
     return null
   }
   const problem = field ? check(field) : null
   const profile = field ? profileOf(field.properties) : undefined
   const known = profile ? Object.keys(profile).length : 0
+  const runAnalysis = () =>
+    field &&
+    b.analyze(field, date, {
+      existing_rotation: field.properties.existing_rotation || undefined,
+      profile,
+      ...extra(),
+    })
 
   return (
     <article className="analytic intelligence" onPointerDown={b.touch} onKeyDown={b.touch}>
@@ -587,18 +652,12 @@ export default function Intelligence({ t, fields, setFields, selected, select, g
                 {t('Çiftçi bilgisi', "Farmer's data")} · {known}/4
               </button>
             )}
+            <button type="button" className="outline" onClick={goPlanner}>
+              <Sprout size={14} />
+              {t('Ürünler ve rotasyonlar', 'Crops & rotations')} · {crops.length}/{myRotations.length}
+            </button>
             {fields.length ? (
-              <button
-                className="primary"
-                disabled={running || !!problem || !field}
-                onClick={() =>
-                  field &&
-                  b.analyze(field, date, {
-                    existing_rotation: field.properties.existing_rotation || undefined,
-                    profile,
-                  })
-                }
-              >
+              <button className="primary" disabled={running || !!problem || !field} onClick={runAnalysis}>
                 {running && b.job?.kind === 'analysis' ? <Loader2 size={15} className="spin" /> : <Play size={15} />}
                 {t('Analiz et', 'Analyse')}
               </button>
@@ -632,8 +691,8 @@ export default function Intelligence({ t, fields, setFields, selected, select, g
               {b.job?.status === 'error' && b.job.error && (
                 <div className="session-bar warn" role="alert">
                   <AlertTriangle size={16} />
-                  {b.job.error}
-                  <button className="outline" disabled={!field} onClick={() => field && b.analyze(field, date, { profile })}>
+                  {serverText(lang, b.job.error)}
+                  <button className="outline" disabled={!field} onClick={runAnalysis}>
                     {t('Tekrar dene', 'Retry')}
                   </button>
                 </div>
@@ -643,54 +702,38 @@ export default function Intelligence({ t, fields, setFields, selected, select, g
                   {a.mlErrors.map((e, i) => (
                     <li key={i}>
                       <AlertTriangle size={14} />
-                      {e}
+                      {serverText(lang, e)}
                     </li>
                   ))}
                 </ul>
               )}
-              {meta && (
-                <div className="meta">
-                  {!!meta.warnings?.length && (
-                    <ul className="warnings">
-                      {meta.warnings.map((w, i) => (
-                        <li key={i}>
-                          <AlertTriangle size={14} />
-                          {w}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {meta.data_as_of && (
-                    <small>
-                      {t('Veri tarihi', 'Data as of')}:{' '}
-                      {Object.entries(meta.data_as_of)
-                        .filter(([, v]) => v)
-                        .map(([k, v]) => k + ' ' + v)
-                        .join(' · ')}
-                    </small>
-                  )}
-                </div>
-              )}
+              {meta && <MetaWarnings meta={meta} lang={lang} t={t} />}
               {!!plain.length && (
                 <div className="layer-grid">
                   {plain.map((l) => (
-                    <LayerCard key={l.name} layer={l} t={t} />
+                    <LayerCard key={l.name} layer={l} t={t} lang={lang} />
                   ))}
                 </div>
               )}
-              <Agents t={t} />
-              {!!b.rounds.length && <AskBox t={t} />}
+              <Agents t={t} lang={lang} />
+              {lang === 'en' && !!b.rounds.length && (
+                <p className="hint">
+                  Advisors are asked to answer in English. Their data comes from the Turkish-language model, so an
+                  occasional Turkish term may slip through.
+                </p>
+              )}
+              {!!b.rounds.length && <AskBox t={t} lang={lang} />}
               {!!rotations.length && (
                 <>
                   <h2>{t('Rotasyonlar', 'Rotations')}</h2>
-                  {!!meta?.information_gaps?.length && (
+                  {!!gaps.length && (
                     <details className="gaps">
                       <summary>
-                        {t('Bilgi boşlukları', 'Information gaps')} ({meta.information_gaps.length}) ·{' '}
+                        {t('Bilgi boşlukları', 'Information gaps')} ({gaps.length}) ·{' '}
                         {t('çiftçi bilgisi ekleyerek eminliği artırın', "add farmer's data to raise confidence")}
                       </summary>
                       <ul>
-                        {meta.information_gaps.map((g, i) => (
+                        {gaps.map((g, i) => (
                           <li key={i}>{g}</li>
                         ))}
                       </ul>
@@ -698,18 +741,62 @@ export default function Intelligence({ t, fields, setFields, selected, select, g
                   )}
                   <div className="rotation-grid">
                     {rotations.map((l) => (
-                      <RotationCard key={l.name} layer={l} t={t} />
+                      <RotationCard key={l.name} layer={l} t={t} lang={lang} />
                     ))}
                   </div>
-                  <RotationForm
-                    t={t}
-                    field={analysedField}
-                    busy={running}
-                    onSubmit={(o) => b.rescore(o)}
-                  />
+                  <section className="tools">
+                    <h3>{t('Kendi rotasyonumu değerlendir', 'Evaluate my own rotation')}</h3>
+                    {catalogFailed && (
+                      <p className="hint">{t('Rotasyon kataloğu alınamadı.', 'Rotation catalogue unavailable.')}</p>
+                    )}
+                    {catalog && (
+                      <RotationForm
+                        t={t}
+                        lang={lang}
+                        field={analysedField}
+                        busy={running}
+                        catalog={catalog}
+                        weights={weights}
+                        setWeights={setWeights}
+                        onSubmit={(o) => b.rescore({ ...o, ...extra() })}
+                      />
+                    )}
+                    <p className="hint">
+                      {t(
+                        'Kendi ürünlerinizi eklemek, hazır kütüphaneden seçmek ya da sezon sezon rotasyon kurmak için ',
+                        'To add your own crops, pick from the library or build a rotation season by season, open ',
+                      )}
+                      <button type="button" className="linkish" onClick={goPlanner}>
+                        {t('Ürünler ve rotasyonlar', 'Crops & rotations')}
+                      </button>
+                      .
+                    </p>
+                  </section>
+                  {catalog && (
+                    <section className="tools">
+                      <h3>{t('Bu tarlaya önerilen ürünler', 'Crops suggested for this field')}</h3>
+                      <CropSuggestions
+                        t={t}
+                        lang={lang}
+                        sid={b.sid}
+                        analysisKey={a.mlDone ? a.fieldId + a.date : null}
+                        catalog={catalog}
+                        crops={crops}
+                        setCrops={setCrops}
+                      />
+                      {!!crops.length && (
+                        <p className="hint">
+                          {t(
+                            'Eklenen ürünler bir sonraki “Analiz et” ya da “Yeniden puanla” ile rotasyon adaylarına girer.',
+                            'Added crops join the rotation candidates from the next “Analyse” or “Re-score”.',
+                          )}
+                        </p>
+                      )}
+                    </section>
+                  )}
                 </>
               )}
-              {meta?.disclaimer && <p className="disclaimer">{meta.disclaimer}</p>}
+              {meta && pick(lang, meta, 'disclaimer') && <p className="disclaimer">{pick(lang, meta, 'disclaimer')}</p>}
             </>
           )}
         </>

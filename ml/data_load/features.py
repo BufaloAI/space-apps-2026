@@ -18,7 +18,8 @@ from . import registry as reg
 COMPOSITE_SHIFT_DAYS = {"end": {"ndvi": 15, "evi": 15, "modis_et_mm": 7, "openet_et_mm": 29},
                         "mid": {"ndvi": 8, "evi": 8, "modis_et_mm": 4, "openet_et_mm": 15}}
 MINMAX_VARS = {"t2m_c", "tmax_c", "tmin_c", "sm_surface", "sm_rootzone", "gwet_top", "gwet_root", "lst_day_c"}
-SUM_VARS = {"precip_mm", "et_mm", "modis_et_mm", "openet_et_mm", "gdd", "heat_day", "frost_day", "dry_day"}
+SUM_VARS = {"precip_mm", "et_mm", "modis_et_mm", "openet_et_mm", "gdd", "heat_day", "frost_day", "dry_day",
+            "water_balance_mm"}
 SCHEMA_VERSION = 1
 
 
@@ -49,6 +50,14 @@ def derive_daily(d: pd.DataFrame) -> pd.DataFrame:
         d["frost_day"] = (d["t2m_c"] < 0).astype("float64").where(d["t2m_c"].notna())
     if "precip_mm" in d.columns:
         d["dry_day"] = (d["precip_mm"] < 1).astype("float64").where(d["precip_mm"].notna())
+    # 2026-11-15 eklendi (sonraki eğitim için; mevcut model şemasında yok, canlı tahmini değiştirmez):
+    if {"t2m_c", "rh_pct"} <= set(d.columns):  # buhar basıncı açığı (kPa): bitkinin su kaybı talebi
+        es = 0.6108 * np.exp(17.27 * d["t2m_c"] / (d["t2m_c"] + 237.3))
+        d["vpd_kpa"] = (es * (1 - d["rh_pct"].clip(0, 100) / 100)).clip(lower=0)
+    if {"tmax_c", "tmin_c"} <= set(d.columns):  # gece-gündüz sıcaklık farkı
+        d["dtr_c"] = d["tmax_c"] - d["tmin_c"]
+    if {"precip_mm", "et_mm"} <= set(d.columns):  # su dengesi: yağış - buharlaşma/terleme
+        d["water_balance_mm"] = d["precip_mm"] - d["et_mm"]
     return d
 
 
@@ -121,12 +130,15 @@ def _build_features(weekly, centers, horizon_weeks, ndvi_lags, other_lags, max_g
         for v in [v for v in base_vars if v != target_var and not v.endswith(("_min", "_max"))]:
             for k in other_lags:
                 f[f"{v}_lag{k}"] = filled[v].shift(k)
-        for v in ("precip_mm", "et_mm", "gdd", "heat_day", "frost_day", "dry_day"):
+        for v in ("precip_mm", "et_mm", "gdd", "heat_day", "frost_day", "dry_day", "water_balance_mm"):
             if v in filled:
                 f[f"{v}_4w"] = filled[v].rolling(4, min_periods=2).sum()
-        if "precip_mm" in filled:
-            f["precip_mm_12w"] = filled["precip_mm"].rolling(12, min_periods=6).sum()
-        for v in ("sm_surface", "sm_rootzone", "gwet_top", "gwet_root", "t2m_c", "lst_day_c"):
+        for v in ("precip_mm", "water_balance_mm"):
+            if v in filled:
+                f[f"{v}_12w"] = filled[v].rolling(12, min_periods=6).sum()
+        if "vpd_kpa" in filled:
+            f["vpd_kpa_4w"] = filled["vpd_kpa"].rolling(4, min_periods=2).mean()
+        for v in ("sm_surface", "sm_rootzone", "gwet_top", "gwet_root", "t2m_c", "lst_day_c", "vpd_kpa"):
             if v in filled:
                 trail = filled[v].shift(1).rolling(12, min_periods=4).mean()
                 f[f"{v}_anom12"] = filled[v] - trail  # sızıntısız anomali (yalnızca geçmiş)

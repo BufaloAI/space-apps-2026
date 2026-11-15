@@ -11,6 +11,12 @@ GROUNDING_RULES = (
     "Yorumunda ilgili sayıları yaz. Eminlik düşükse bunu açıkça belirt. "
     "Bir veri yoksa 'bu veri elimde yok' de. Türkçe, kısa ve net yaz."
 )
+# İngilizce arayüzde: aynı kurallar + cevap dili İngilizce (veri metni Türkçe kalır, model çevirerek yorumlar).
+GROUNDING_RULES_EN = (
+    "Rules: Rely only on the data you are given; never invent numbers, dates or events that are not in it. "
+    "Quote the relevant numbers. If confidence is low, say so clearly. If some data is missing, say 'I do not "
+    "have this data'. The data below is written in Turkish, but you MUST answer in clear, short English only."
+)
 
 
 @dataclass(frozen=True)
@@ -21,9 +27,11 @@ class AgentConfig:
     layers: tuple[str, ...]  # bu botun göreceği ML katmanları
     optional_layers: tuple[str, ...] = ()  # varsa gösterilir, yoksa "veri yok" denmez (örn. mevcut rotasyon)
     max_sentences: int = 5
+    name_en: str = ""
 
     def public(self) -> dict:
-        return {"id": self.id, "name": self.name, "layers": [*self.layers, *self.optional_layers]}
+        return {"id": self.id, "name": self.name, "name_en": self.name_en or self.name,
+                "layers": [*self.layers, *self.optional_layers]}
 
 
 def load_agents(path: Path) -> list[AgentConfig]:
@@ -42,6 +50,7 @@ def load_agents(path: Path) -> list[AgentConfig]:
                 layers=tuple(str(x) for x in a["layers"]),
                 optional_layers=tuple(str(x) for x in a.get("optional_layers", ())),
                 max_sentences=int(a.get("max_sentences", 5)),
+                name_en=str(a.get("name_en", "")).strip(),
             )
         except KeyError as e:
             raise ValueError(f"{path}: {i}. [[agent]] içinde {e} alanı eksik") from None

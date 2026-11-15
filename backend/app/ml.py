@@ -53,6 +53,16 @@ class Layer:
         )
         return f"{s}. {self.note}" if self.note else s
 
+    def summary_en(self) -> str:
+        """İngilizce arayüz için bot verisi: ML'in `label_en` / `note_en` metinleri (yoksa Türkçesi)."""
+        d = self.details or {}
+        label, note = d.get("label_en") or self.label, d.get("note_en") or self.note
+        unit = {"puan": "points"}.get(self.unit, self.unit)
+        level = {"yüksek": "high", "orta": "medium", "düşük": "low"}[self.confidence_level]
+        rng = f"(range {self.min:.1f}–{self.max:.1f}), " if self.min != self.max else ""
+        s = f"{label}: mean {self.mean:.1f} {unit} {rng}confidence {level} ({self.confidence * 100:.0f}%)"
+        return f"{s}. {note}" if note else s
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["confidence_level"] = self.confidence_level  # frontend etiketi hesaplamasın, backend verir
@@ -214,6 +224,7 @@ class XGBoostMLProvider:
                 lon, lat, today=dt.date.today(),  # hep güncel veri; istekteki tarih yalnızca kayıt için
                 existing=opts.get("existing_rotation"), chosen=opts.get("chosen_rotation"),
                 priorities=opts.get("priorities"), profile=opts.get("profile"), progress=report,
+                custom_crops=opts.get("custom_crops"), custom_rotations=opts.get("custom_rotations"),
             )
 
         try:
@@ -229,11 +240,15 @@ class XGBoostMLProvider:
                 "warnings": res["warnings"], "data_as_of": res["data_as_of"], "data_sources": res["data_sources"],
                 "model_version": res["model_version"], "information_gaps": res["rotations"]["information_gaps"],
                 "disclaimer": res["rotations"]["disclaimer"], "field_info": res.get("field_info"),
+                "warnings_en": res.get("warnings_en", res["warnings"]),
+                "information_gaps_en": res["rotations"].get("information_gaps_en"),
+                "disclaimer_en": res["rotations"].get("disclaimer_en"),
             })}})
         self.last_state = {"parcel": parcel.centroid, "state": state}
         return layers
 
-    def rescore(self, parcel: Parcel, existing=None, chosen=None, priorities=None, profile=None) -> list[Layer]:
+    def rescore(self, parcel: Parcel, existing=None, chosen=None, priorities=None, profile=None,
+                custom_crops=None, custom_rotations=None) -> list[Layer]:
         """Son analizin verisiyle rotasyonları yeniden puanlar (ağ yok, milisaniyeler)."""
         from ml import service as S  # noqa: PLC0415
 
@@ -241,10 +256,21 @@ class XGBoostMLProvider:
         if not last or last["parcel"] != parcel.centroid:
             raise MLUserError("Bu parsel için önce analiz yapılmalı.")
         try:
-            rot = S.ParcelService.rescore(last["state"], existing, chosen, priorities, profile)
+            rot = S.ParcelService.rescore(last["state"], existing, chosen, priorities, profile,
+                                          custom_crops, custom_rotations)
         except ValueError as e:
             raise MLUserError(f"Geçersiz rotasyon girdisi: {e}") from e
         return _layers_from_dicts(S.rotation_layers(rot, self.synthetic))
+
+    def suggest_crops(self, parcel: Parcel, exclude: set[str], profile: dict | None = None) -> list[dict]:
+        """Son analizin iklimine uygun, çiftçinin listesinde olmayan ürünler (ağ yok, milisaniyeler)."""
+        from ml.model import rotation as ROT  # noqa: PLC0415
+
+        last = getattr(self, "last_state", None)
+        if not last or last["parcel"] != parcel.centroid:
+            raise MLUserError("Bu parsel için önce analiz yapılmalı.")
+        st = last["state"]
+        return json_safe(ROT.suggest_crops(st["cond"], {**st.get("profile", {}), **(profile or {})}, exclude))
 
     @staticmethod
     def catalog() -> dict:
@@ -252,12 +278,25 @@ class XGBoostMLProvider:
         from ml.model import rotation as ROT  # noqa: PLC0415
 
         cat = ROT.catalog()
+        lib_fields = (*ROT.CROP_FLOATS, "gdd_need", "n_fix")
         return {
-            "crops": [{"id": k, "name": v["name"], "family": v["family"], "season": v["season"],
-                       "cover_crop": bool(v.get("cover_crop", False))} for k, v in cat["crops"].items()],
-            "rotations": [{"id": k, "name": v["name"], "sequence": v["seq"]} for k, v in cat["rotations"].items()],
-            "priorities": [{"id": k, "label": v, "default": ROT.DEFAULT_PRIORITIES[k]}
-                           for k, v in ROT.PRIORITY_LABELS.items()],
+            "library": [{"id": k, "name": v["name"], "name_en": v.get("name_en", v["name"]), "family": v["family"],
+                         "season": v["season"], "cover_crop": bool(v.get("cover_crop", False)),
+                         "note": v.get("note"), "note_en": v.get("note_en"),
+                         "profile": {f: v.get(f) for f in lib_fields}} for k, v in ROT.library().items()],
+            "crops": [{"id": k, "name": v["name"], "name_en": v.get("name_en", v["name"]),
+                       "family": v["family"], "season": v["season"],
+                       "cover_crop": bool(v.get("cover_crop", False)),
+                       # çiftçi bir katalog ürününü kopyalayıp kendi değerleriyle düzenleyebilsin
+                       "profile": {f: v.get(f) for f in (*ROT.CROP_FLOATS, "gdd_need", "n_fix")}}
+                      for k, v in cat["crops"].items()],
+            "crop_fields": {"floats_0_1": list(ROT.CROP_FLOATS), "seasons": list(ROT.SEASONS),
+                            "economics": list(ROT.ECON_KEYS),
+                            "families": sorted({v["family"] for v in cat["crops"].values()} | {"other"})},
+            "rotations": [{"id": k, "name": v["name"], "name_en": v.get("name_en", v["name"]), "sequence": v["seq"]}
+                          for k, v in cat["rotations"].items()],
+            "priorities": [{"id": k, "label": v, "label_en": ROT.PRIORITY_LABELS_EN[k],
+                            "default": ROT.DEFAULT_PRIORITIES[k]} for k, v in ROT.PRIORITY_LABELS.items()],
             "rotation_syntax": "ürünler '>' ile sıralanır, örtü bitkisi '+' ile eklenir: corn+cereal_rye>soybean",
         }
 

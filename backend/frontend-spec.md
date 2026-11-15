@@ -151,7 +151,7 @@ Yalnızca bir bota sormak için `"agent": "a"` ekleyin. Cevap: `{ "job_id": "qEO
   "priorities": [{"id":"water","label":"su tasarrufu","default":1.0}, …],
   "rotation_syntax": "ürünler '>' ile sıralanır, örtü bitkisi '+' ile eklenir: corn+cereal_rye>soybean" }
 ```
-(`ML_PROVIDER=fake` iken `503`.)
+Her ürün `profile` (0–1 alanlar, `gdd_need`, `n_fix`) taşır; `crop_fields` formdaki alanları listeler (`floats_0_1`, `seasons`, `economics`, `families`). Çiftçi bir katalog ürününü kopyalayıp düzenleyebilir. (`ML_PROVIDER=fake` iken `503`.)
 
 **`POST /api/rotations`** → `200` (anında, LLM çağırmaz; önce analiz gerekli, yoksa `409 no_analysis`)
 ```json
@@ -161,6 +161,16 @@ Yalnızca bir bota sormak için `"agent": "a"` ekleyin. Cevap: `{ "job_id": "qEO
   "priorities": { "water": 2, "soil_health": 1.5, "income": 1, "erosion": 1, "forage": 0.3 },
   "profile": { "irrigation": false, "slope_pct": 3, "soil_om_pct": 3.2, "soil_texture": "silt_loam" } }
 ```
+- **Çiftçinin ürünleri ve rotasyonları (2026-11-15):** `custom_crops` (en fazla 30) ve `custom_rotations` (en fazla 30) hem `POST /api/analysis` hem `POST /api/rotations`'ta gönderilebilir. Frontend bunları tarayıcıda saklar ve **her istekte ikisini birlikte** yollar (silinen ürünü kullanan rotasyonu göndermez; bilinmeyen ürün `422`).
+  ```json
+  "custom_crops": [{ "id": "my_mercimek", "name": "Kırmızı mercimek", "family": "fabaceae", "season": "cool",
+                     "water_need": 0.3, "drought_tol": 0.7, "heat_tol": 0.4, "frost_tol": 0.6, "wet_tol": 0.6,
+                     "n_need": 0.1, "residue_cover": 0.3, "om": 0.3, "market": 0.75, "forage": 0.3,
+                     "gdd_need": 0, "n_fix": true, "cover_crop": false,
+                     "yield_t_ha": 1.6, "price_per_t": 32000, "cost_per_ha": 21000 }],
+  "custom_rotations": [{ "name": "Buğday → Mercimek", "seq": "winter_wheat>my_mercimek" }]
+  ```
+  `id` `^[a-z0-9_]+$`; katalogdaki bir kimlikle gönderilirse o ürünün değerleri yerine çiftçininki kullanılır. 0–1 alanlar `crops.toml` ile aynı anlamdadır (verilmeyen 0.5). Ekonomi alanları isteğe bağlıdır; bir rotasyonun tüm ana ürünlerinde varsa `details.economics` gelir (sezon başına brüt kâr, tahmini verim kaybı düşülmüş).
 - Hepsi isteğe bağlı; verilmeyen alan önceki değerini korur. Rotasyon: katalogdaki `rotations[].id` **ya da** ürün id'leri `>` ile (örtü bitkisi `+` ile). Öncelik anahtarları: `water, soil_health, income, erosion, forage`, ağırlık 0–5.
 - Cevap: `{"layers":[…yeni rotasyon_* katmanları…], "options":{…}}`. Ekrandaki rotasyon katmanlarını bunlarla **değiştirin**.
 - Bilinmeyen ürün → `422` + Türkçe metin (`"Geçersiz rotasyon girdisi: …"`).
@@ -214,9 +224,14 @@ Olay türleri (alanlara göre ayırt edin):
 | `rotasyon_1..3` | önerilen rotasyonlar, puan 0–100 | tek değer | aşağıdaki rotasyon nesnesi |
 | `rotasyon_mevcut` | çiftçinin mevcut rotasyonu (girdiyse) | tek değer | aynı |
 | `rotasyon_secilen` | çiftçinin değerlendirmek istediği (girdiyse) | tek değer | aynı |
+| `rotasyon_ozel_1..5` | çiftçinin oluşturduğu rotasyonlar (`custom_rotations`), `details.rank` = tüm adaylar içindeki sırası | tek değer | aynı |
+| `hava_tahmini` | önümüzdeki 2 haftanın ortalama sıcaklığı, °C | p50 / %10–%90 | **`outlook`**: 4 hafta × (`t2m`, `tmax`, `tmin`, `precip`, `gdd`, `frost_days`, `heat_days`) → `{p10,p50,p90,normal}`, `skill`, `interval_coverage`, `history_years`, `issued_from` |
+| `yagis_tahmini` | önümüzdeki 2 haftanın toplam yağışı, mm | p50 / %10–%90 | `outlook_ref` (ayrıntı `hava_tahmini`'nde) |
 
 - **`_meta`** (ilk katmanın `details._meta`'sı): `warnings` (kullanıcıya gösterin: uydu gecikmesi, eksik veri), `data_as_of` (`weather`, `ndvi` tarihleri), `data_sources`, `information_gaps`, `disclaimer` ("nihai karar çiftçiye aittir"; **ekranda gösterin**).
-- **Rotasyon `details`**: `name`, `sequence_names` (örn. `["Mısır + Çavdar (örtü bitkisi)", "Soya"]`), `score`, `risk` (0–1), `why[]`, `benefits[]`, **`damages[]`**, `expected_yield_loss_pct` (ürün → `[alt, üst]` %), `risks_for_local_review[]`, `delta_vs_existing` (`score`, `risk` farkı; mevcut rotasyon girildiyse).
+- **Rotasyon adayları:** 13 sabit katalog rotasyonuna ek olarak ML ürün kurallarından 2–3 sezonluk adaylar üretir (`details.source`: `katalog` | `otomatik` | `çiftçi`). Öneriler farklı ürün kümelerinden seçilir ve en iyi katalog rotasyonu her zaman ilk 3'te yer alır. Otomatik adayları ekranda belirtin.
+- **Toprak/eğim tahmini:** SSURGO yoksa (ABD dışı ya da servis hatası) SoilGrids + pedotransfer + yükseklik modelinden hesaplanır; `_meta.field_info.soil.estimated = true` ve `_meta.warnings`'te "hesaplandı" uyarısı gelir.
+- **Rotasyon `details`**: `source`, `rank`, `economics` (varsa), `name`, `sequence_names` (örn. `["Mısır + Çavdar (örtü bitkisi)", "Soya"]`), `score`, `risk` (0–1), `why[]`, `benefits[]`, **`damages[]`**, `expected_yield_loss_pct` (ürün → `[alt, üst]` %), `risks_for_local_review[]`, `delta_vs_existing` (`score`, `risk` farkı; mevcut rotasyon girildiyse).
 - **`damages[]`** (risklerin olası zararları, ağırdan hafife sıralı): `{"risk":"kuraklık / su stresi","affects":"Mısır","severity":"yüksek|orta|düşük","yield_loss_pct":[6.0,18.0] veya null,"impact":"…açıklama…"}`. Verim kaybı aralıkları **genel tahmindir**; ekranda "tahmini" diye belirtin.
 - `errors`: bir ML bileşeni çökmüşse mesajları (diğer katmanlar yine gelir). Boş liste = sorun yok. Hiç katman yoksa iş hata ile biter.
 
@@ -253,6 +268,17 @@ Olay türleri (alanlara göre ayırt edin):
 - Eksik gün değeri `null`'dur (POWER `-999`).
 - Hata: `422` (yıl 1981–bu yıl dışında, koordinat aralık dışı), `502` (POWER'a ulaşılamadı, Türkçe metin).
 - Frontend tamamlanmış yılları `localStorage`'da da tutar (sohbet verisi değil, kamuya açık iklim verisi).
+
+### 5.8 Hava görünümü (oturumsuz)
+
+**`GET /api/climate/outlook?lat=39.58&lon=32.15`** → `200`, `hava_tahmini.details.outlook` ile aynı biçim (+ `confidence` değişken başına, `lat`, `lon`, `cached`). Noktanın 15 yıllık NASA POWER geçmişinden mevsim normali + kalıcılık modeli; son 2 yılın geri testinden beceri (`skill`, 0 = mevsim normalinden iyi değil) ve aralık. Aynı gün aynı 0.1° hücre önbellekten. `502` = POWER'a ulaşılamadı ya da 5 yıldan az geçmiş.
+
+### 5.9 Dil, ürün kütüphanesi ve ürün önerileri (2026-11-15)
+
+- **Dil:** `POST /api/analysis` ve `POST /api/ask` gövdesinde `"lang": "tr" | "en"` (varsayılan `tr`). `en` ise botlar İngilizce veriyle beslenir ve İngilizce cevap verir. Katman/ML içeriği **her zaman iki dillidir**: Türkçe alanların yanında `*_en` alanları gelir — katman `details.label_en`, `details.note_en`; `_meta.warnings_en`, `information_gaps_en`, `disclaimer_en`; rotasyon `name_en`, `sequence_names_en`, `why_en`, `benefits_en`, `risks_for_local_review_en`, `damages[].risk_en/affects_en/impact_en` (+ `kind`); `economics.note_en`. Bot listesi `name_en`; katalogda ürün/rotasyon `name_en`, öncelik `label_en`. Frontend İngilizce modda `*_en`, yoksa Türkçesini gösterir. Backend hata metinleri Türkçe kalır (frontend sabit metinleri çevirir).
+- **Ürün kütüphanesi:** `GET /api/rotations/catalog` → `library[]` (20 hazır ürün, `ml/model/crop_library.toml`): `id, name, name_en, family, season, cover_crop, note, note_en, profile`. Varsayılan adaylara girmez; çiftçi ekleyince `custom_crops` ile gönderilir (kimliği korunur).
+- **`GET /api/crops/suggestions?session_id=…&exclude=a,b`** → `200` (önce analiz gerekli, yoksa `409 no_analysis`): son analizin iklimine uygun (`fit` ≥ 0.5), çiftçinin listesinde olmayan ürünler, uygunluğa göre sıralı, en fazla 8: `{id, name, name_en, from: "library"|"catalog", fit, family, season, expected_yield_loss_pct, main_risk(_en), concerns(_en)[], note(_en)}`. Sezgisel; ölçüm değildir.
+- **Site sunumu:** `SITE_DIR` ayarlıysa backend derlenmiş siteyi de sunar (`/`, `/intro`, `/app`); `/api` önce eşleşir.
 
 ## 6. Oturum yaşam döngüsü (frontend'in sorumlulukları)
 

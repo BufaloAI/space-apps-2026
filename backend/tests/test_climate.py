@@ -72,3 +72,24 @@ def test_endpoint(monkeypatch, tmp_path):
 
         c.app.state.climate.fetcher = boom
         assert c.get("/api/climate/daily", params={"lat": 1, "lon": 1, "year": 2023}).status_code == 502
+
+
+def test_outlook_endpoint_cached(monkeypatch, tmp_path):
+    monkeypatch.setenv("VLLM_API_KEY", "test-key")
+    monkeypatch.setenv("CLIMATE_CACHE_DIR", str(tmp_path))
+    from app.main import app
+
+    calls = []
+
+    def fake(lat, lon, today):
+        calls.append((lat, lon))
+        return {"weeks": [{"week": 1, "vars": {}}], "skill": {}, "history_years": 15}
+
+    with TestClient(app) as c:
+        c.app.state.climate.outlook_fn = fake
+        a = c.get("/api/climate/outlook", params={"lat": 39.58, "lon": 32.15})
+        b = c.get("/api/climate/outlook", params={"lat": 39.61, "lon": 32.13})  # aynı 0.1° hücre
+        assert a.status_code == 200 and a.json()["lat"] == 39.6 and b.json()["cached"] is True
+        assert len(calls) == 1
+        c.app.state.climate.outlook_fn = lambda *a: None
+        assert c.get("/api/climate/outlook", params={"lat": 10, "lon": 10}).status_code == 502

@@ -7,6 +7,7 @@ import {
   Sprout,
   Database,
   BrainCircuit,
+  Wheat,
   RotateCcw,
   Sun,
   Moon,
@@ -30,7 +31,8 @@ import {
 import './style.css'
 const MapWorkspace = lazy(() => import('./MapWorkspace')),
   Analytics = lazy(() => import('./Analytics')),
-  Intelligence = lazy(() => import('./Intelligence'))
+  Intelligence = lazy(() => import('./Intelligence')),
+  Planner = lazy(() => import('./Planner'))
 const pages: Page[] = [
   'intro',
   'map',
@@ -39,6 +41,7 @@ const pages: Page[] = [
   'indicators',
   'data',
   'ai',
+  'planner',
 ]
 const sessionKey = 'bufaloai.intro.completed'
 function setEntry(completed: boolean) {
@@ -157,9 +160,10 @@ function App() {
     ],
     [Database, 'data', t('Veri gezgini', 'Data explorer')],
     [BrainCircuit, 'ai', t('Yapay zekâ', 'AI intelligence')],
+    [Wheat, 'planner', t('Ürünler ve rotasyonlar', 'Crops & rotations')],
   ] as const
   return (
-    <BackendProvider t={t}>
+    <BackendProvider t={t} lang={lang}>
       {intro && (
         <Intro
           lang={lang}
@@ -297,7 +301,10 @@ function App() {
                   selected={selected}
                   select={select}
                   goFields={() => go('fields')}
+                  goPlanner={() => go('planner')}
                 />
+              ) : workspacePage === 'planner' ? (
+                <Planner t={t} lang={lang} fields={fields} goAI={() => go('ai')} />
               ) : (
                 <Analytics
                   t={t}

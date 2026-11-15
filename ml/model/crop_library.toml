@@ -1,0 +1,406 @@
+# Ürün KÜTÜPHANESİ: varsayılan adaylarda yer almayan, çiftçinin tek tıkla kendi listesine ekleyebileceği ürünler.
+# UYARI: crops.toml gibi bunlar da genel agronomik sezgilerdir (0-1 göreli ölçek), ölçüm DEĞİLDİR. Çiftçi eklerken
+# kendi bilgisiyle düzenleyebilir. Alanların anlamı crops.toml başındaki açıklamayla aynıdır.
+# region: hangi iklimlerde yaygın (yalnızca bilgi) | note: kısa açıklama (TR / EN)
+
+[crops.barley]
+name = "Arpa"
+name_en = "Barley"
+family = "poaceae"
+season = "cool"
+water_need = 0.40
+drought_tol = 0.70
+heat_tol = 0.45
+frost_tol = 0.80
+gdd_need = 900
+n_fix = false
+residue_cover = 0.65
+om = 0.50
+market = 0.60
+forage = 0.55
+n_need = 0.50
+wet_tol = 0.55
+note = "Buğdaydan daha kısa sürede olgunlaşır, kurağa ve tuzluluğa daha dayanıklıdır."
+note_en = "Matures earlier than wheat and tolerates drought and salinity better."
+
+[crops.oats]
+name = "Yulaf"
+name_en = "Oats"
+family = "poaceae"
+season = "cool"
+water_need = 0.55
+drought_tol = 0.45
+heat_tol = 0.30
+frost_tol = 0.55
+gdd_need = 900
+n_fix = false
+residue_cover = 0.65
+om = 0.55
+market = 0.50
+forage = 0.70
+n_need = 0.45
+wet_tol = 0.65
+note = "Serin ve nemli iklimi sever; yem ve tane için yetiştirilir."
+note_en = "Prefers cool, moist climates; grown for grain and forage."
+
+[crops.triticale]
+name = "Tritikale"
+name_en = "Triticale"
+family = "poaceae"
+season = "cool"
+water_need = 0.45
+drought_tol = 0.60
+heat_tol = 0.40
+frost_tol = 0.85
+gdd_need = 1000
+n_fix = false
+residue_cover = 0.70
+om = 0.55
+market = 0.50
+forage = 0.75
+n_need = 0.50
+wet_tol = 0.60
+note = "Buğday x çavdar melezi; soğuğa dayanıklı, yem değeri yüksek."
+note_en = "Wheat x rye hybrid; winter-hardy with high forage value."
+
+[crops.rice]
+name = "Çeltik"
+name_en = "Rice"
+family = "poaceae"
+season = "warm"
+water_need = 1.00
+drought_tol = 0.05
+heat_tol = 0.60
+frost_tol = 0.05
+gdd_need = 1600
+n_fix = false
+residue_cover = 0.50
+om = 0.50
+market = 0.80
+forage = 0.20
+n_need = 0.80
+wet_tol = 1.00
+note = "Göllendirme ya da bol sulama gerekir; sulamasız kurak alanda uygun değildir."
+note_en = "Needs flooding or heavy irrigation; unsuitable for dry rainfed land."
+
+[crops.pearl_millet]
+name = "Darı (inci darı)"
+name_en = "Pearl millet"
+family = "poaceae"
+season = "warm"
+water_need = 0.30
+drought_tol = 0.90
+heat_tol = 0.90
+frost_tol = 0.05
+gdd_need = 1100
+n_fix = false
+residue_cover = 0.55
+om = 0.45
+market = 0.40
+forage = 0.60
+n_need = 0.40
+wet_tol = 0.60
+note = "Çok sıcak ve kurak koşullara dayanır; kumlu topraklarda iyidir."
+note_en = "Tolerates very hot, dry conditions; does well on sandy soils."
+
+[crops.canola]
+name = "Kolza (kanola)"
+name_en = "Canola (rapeseed)"
+family = "brassicaceae"
+season = "cool"
+water_need = 0.55
+drought_tol = 0.45
+heat_tol = 0.30
+frost_tol = 0.65
+gdd_need = 1100
+n_fix = false
+residue_cover = 0.45
+om = 0.40
+market = 0.75
+forage = 0.20
+n_need = 0.75
+wet_tol = 0.55
+note = "Hububat rotasyonunu kırar (farklı aile); kışlık çeşitler don ister."
+note_en = "Breaks cereal rotations (different family); winter types need hardiness."
+
+[crops.lentil]
+name = "Mercimek"
+name_en = "Lentil"
+family = "fabaceae"
+season = "cool"
+water_need = 0.30
+drought_tol = 0.70
+heat_tol = 0.35
+frost_tol = 0.60
+gdd_need = 800
+n_fix = true
+residue_cover = 0.25
+om = 0.30
+market = 0.75
+forage = 0.30
+n_need = 0.10
+wet_tol = 0.50
+note = "Kuru tarımda buğdayla iyi döner; azot bağlar."
+note_en = "Rotates well with wheat in dryland farming; fixes nitrogen."
+
+[crops.field_pea]
+name = "Bezelye (tarla)"
+name_en = "Field pea"
+family = "fabaceae"
+season = "cool"
+water_need = 0.45
+drought_tol = 0.45
+heat_tol = 0.25
+frost_tol = 0.55
+gdd_need = 850
+n_fix = true
+residue_cover = 0.30
+om = 0.35
+market = 0.60
+forage = 0.50
+n_need = 0.10
+wet_tol = 0.50
+note = "Serin mevsim baklagili; sıcakta verimi düşer."
+note_en = "Cool-season legume; yield drops in heat."
+
+[crops.faba_bean]
+name = "Bakla"
+name_en = "Faba bean"
+family = "fabaceae"
+season = "cool"
+water_need = 0.60
+drought_tol = 0.35
+heat_tol = 0.25
+frost_tol = 0.55
+gdd_need = 1000
+n_fix = true
+residue_cover = 0.35
+om = 0.45
+market = 0.55
+forage = 0.50
+n_need = 0.05
+wet_tol = 0.65
+note = "Çok azot bağlar; nemli serin iklimi sever."
+note_en = "Fixes a lot of nitrogen; likes cool, moist climates."
+
+[crops.dry_bean]
+name = "Kuru fasulye"
+name_en = "Dry bean"
+family = "fabaceae"
+season = "warm"
+water_need = 0.60
+drought_tol = 0.35
+heat_tol = 0.40
+frost_tol = 0.05
+gdd_need = 1100
+n_fix = true
+residue_cover = 0.20
+om = 0.25
+market = 0.80
+forage = 0.15
+n_need = 0.25
+wet_tol = 0.50
+note = "Yazlık baklagil; dona ve aşırı sıcağa duyarlı."
+note_en = "Warm-season legume; sensitive to frost and extreme heat."
+
+[crops.peanut]
+name = "Yer fıstığı"
+name_en = "Peanut"
+family = "fabaceae"
+season = "warm"
+water_need = 0.55
+drought_tol = 0.55
+heat_tol = 0.75
+frost_tol = 0.05
+gdd_need = 1700
+n_fix = true
+residue_cover = 0.25
+om = 0.30
+market = 0.85
+forage = 0.40
+n_need = 0.15
+wet_tol = 0.55
+note = "Uzun ve sıcak mevsim ister; hafif topraklarda iyidir."
+note_en = "Needs a long, warm season; best on light soils."
+
+[crops.potato]
+name = "Patates"
+name_en = "Potato"
+family = "solanaceae"
+season = "warm"
+water_need = 0.75
+drought_tol = 0.20
+heat_tol = 0.25
+frost_tol = 0.15
+gdd_need = 1000
+n_fix = false
+residue_cover = 0.15
+om = 0.20
+market = 0.90
+forage = 0.10
+n_need = 0.80
+wet_tol = 0.40
+note = "Yüksek gelir, yüksek girdi; hasatta toprak açılır, erozyona dikkat."
+note_en = "High value and high input; harvest disturbs soil, watch erosion."
+
+[crops.tomato]
+name = "Domates (sanayi)"
+name_en = "Tomato (processing)"
+family = "solanaceae"
+season = "warm"
+water_need = 0.80
+drought_tol = 0.25
+heat_tol = 0.55
+frost_tol = 0.05
+gdd_need = 1400
+n_fix = false
+residue_cover = 0.20
+om = 0.25
+market = 0.95
+forage = 0.05
+n_need = 0.75
+wet_tol = 0.35
+note = "Sulama ister; nemli yazlarda hastalık baskısı yüksektir."
+note_en = "Needs irrigation; disease pressure is high in humid summers."
+
+[crops.sugar_beet]
+name = "Şeker pancarı"
+name_en = "Sugar beet"
+family = "amaranthaceae"
+season = "warm"
+water_need = 0.75
+drought_tol = 0.35
+heat_tol = 0.40
+frost_tol = 0.35
+gdd_need = 1300
+n_fix = false
+residue_cover = 0.25
+om = 0.35
+market = 0.80
+forage = 0.40
+n_need = 0.70
+wet_tol = 0.55
+note = "Hububat rotasyonunu kırar; sulama ve iyi toprak ister."
+note_en = "Breaks cereal rotations; needs irrigation and good soil."
+
+[crops.safflower]
+name = "Aspir"
+name_en = "Safflower"
+family = "asteraceae"
+season = "warm"
+water_need = 0.30
+drought_tol = 0.85
+heat_tol = 0.75
+frost_tol = 0.30
+gdd_need = 1200
+n_fix = false
+residue_cover = 0.40
+om = 0.40
+market = 0.55
+forage = 0.20
+n_need = 0.45
+wet_tol = 0.35
+note = "Derin köklü yağ bitkisi; kurak alanlar için ayçiçeğine alternatif."
+note_en = "Deep-rooted oilseed; a drought-tolerant alternative to sunflower."
+
+[crops.sesame]
+name = "Susam"
+name_en = "Sesame"
+family = "pedaliaceae"
+season = "warm"
+water_need = 0.35
+drought_tol = 0.75
+heat_tol = 0.90
+frost_tol = 0.05
+gdd_need = 1500
+n_fix = false
+residue_cover = 0.25
+om = 0.30
+market = 0.80
+forage = 0.05
+n_need = 0.40
+wet_tol = 0.30
+note = "Sıcak ister, kurağa dayanır; hasat kaybına dikkat."
+note_en = "Heat-loving and drought-tolerant; watch for shattering losses."
+
+[crops.flax]
+name = "Keten"
+name_en = "Flax (linseed)"
+family = "linaceae"
+season = "cool"
+water_need = 0.45
+drought_tol = 0.45
+heat_tol = 0.30
+frost_tol = 0.55
+gdd_need = 1000
+n_fix = false
+residue_cover = 0.40
+om = 0.35
+market = 0.55
+forage = 0.10
+n_need = 0.40
+wet_tol = 0.55
+note = "Serin iklim yağ/lif bitkisi; rotasyon çeşitliliği sağlar."
+note_en = "Cool-climate oil/fibre crop; adds rotation diversity."
+
+[crops.buckwheat]
+name = "Karabuğday"
+name_en = "Buckwheat"
+family = "polygonaceae"
+season = "warm"
+water_need = 0.45
+drought_tol = 0.40
+heat_tol = 0.35
+frost_tol = 0.05
+gdd_need = 700
+n_fix = false
+residue_cover = 0.40
+om = 0.40
+market = 0.45
+forage = 0.20
+n_need = 0.15
+wet_tol = 0.60
+note = "Kısa sürede olgunlaşır, az gübre ister; yabancı otu bastırır."
+note_en = "Very short season, low fertiliser need; suppresses weeds."
+
+[crops.crimson_clover]
+name = "Kırmızı üçgül (örtü bitkisi)"
+name_en = "Crimson clover (cover crop)"
+family = "fabaceae"
+season = "cool"
+cover_crop = true
+water_need = 0.40
+drought_tol = 0.40
+heat_tol = 0.30
+frost_tol = 0.55
+gdd_need = 0
+n_fix = true
+residue_cover = 0.70
+om = 0.55
+market = 0.05
+forage = 0.60
+n_need = 0.00
+wet_tol = 0.70
+note = "Kışlık örtü baklagili; sonraki ürüne azot bırakır."
+note_en = "Winter cover legume; leaves nitrogen for the next crop."
+
+[crops.mustard_cover]
+name = "Hardal (örtü bitkisi)"
+name_en = "Mustard (cover crop)"
+family = "brassicaceae"
+season = "cool"
+cover_crop = true
+water_need = 0.40
+drought_tol = 0.45
+heat_tol = 0.35
+frost_tol = 0.40
+gdd_need = 0
+n_fix = false
+residue_cover = 0.60
+om = 0.45
+market = 0.00
+forage = 0.20
+n_need = 0.40
+wet_tol = 0.60
+note = "Hızlı örter; bazı toprak kökenli zararlıları baskılayabilir."
+note_en = "Covers quickly; may suppress some soil-borne pests."

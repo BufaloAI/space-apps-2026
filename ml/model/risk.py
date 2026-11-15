@@ -40,10 +40,22 @@ def _phi(z):
     return 0.5 * (1 + math.erf(z / math.sqrt(2)))
 
 
+def _outlook_2w(outlook: dict | None, var: str, key: str = "p50") -> float:
+    """Hava görünümünün 1-2. hafta toplamı (gün/mm); yoksa NaN."""
+    if not outlook or not outlook.get("weeks"):
+        return float("nan")
+    vals = [w["vars"].get(var, {}).get(key) for w in outlook["weeks"][:2]]
+    vals = [v for v in vals if v is not None]
+    return float(sum(vals)) if vals else float("nan")
+
+
 def short_term_risk(row: pd.Series, pred: dict | None, clim: pd.DataFrame | None, ref: pd.Series | None,
-                    coverage: float = 1.0, horizon_weeks: int = 2) -> dict:
+                    coverage: float = 1.0, horizon_weeks: int = 2, outlook: dict | None = None) -> dict:
     """Bir alan-hafta için risk bileşenleri + genel skor + güven. `pred` yoksa (NDVI alınamadı)
-    bitki stresi hesaplanmaz, diğer bileşenler iklim verisinden hesaplanır."""
+    bitki stresi hesaplanmaz, diğer bileşenler iklim verisinden hesaplanır.
+
+    `outlook` (hava görünümü) verilirse don, sıcak ve su bileşenleri ileriye bakar: son 4 haftanın gözlemi ile
+    önümüzdeki 2 haftanın beklentisinden büyük olanı alınır (risk erken uyarı içindir)."""
     if pred is not None:
         p10, p50, p90 = pred["ndvi_p10"], pred["ndvi_p50"], pred["ndvi_p90"]
         horizon_weeks = int(pred["horizon_weeks"])
@@ -72,13 +84,23 @@ def short_term_risk(row: pd.Series, pred: dict | None, clim: pd.DataFrame | None
         if np.isfinite(v) and np.isfinite(r) and r > 0:
             parts.append(_clip01((r - v) / (0.5 * r)))
             break
+    p_next, p_norm = _outlook_2w(outlook, "precip"), _outlook_2w(outlook, "precip", "normal")
+    if np.isfinite(p_next) and np.isfinite(p_norm) and p_norm >= 5:  # normali çok kuru dönemde anlamsız
+        parts.append(_clip01(1 - p_next / p_norm))
     water = float(np.mean(parts)) if parts else float("nan")
 
     hd = _get(row, "heat_day_4w")
     heat = _clip01(hd / 10) if np.isfinite(hd) else _clip01((_get(row, "tmax_c_max") - 32) / 8)
+    hd_next = _outlook_2w(outlook, "heat_days")
+    if np.isfinite(hd_next):
+        heat = max(heat, _clip01(hd_next / 5)) if np.isfinite(heat) else _clip01(hd_next / 5)
     fd = _get(row, "frost_day_4w")
     in_season = 14 <= woy <= 40  # kabaca nisan-eylül
     frost = _clip01(fd / 4) * (1.0 if in_season else 0.3) if np.isfinite(fd) else float("nan")
+    fd_next = _outlook_2w(outlook, "frost_days")
+    if np.isfinite(fd_next):
+        f2 = _clip01(fd_next / 2) * (1.0 if in_season else 0.3)
+        frost = max(frost, f2) if np.isfinite(frost) else f2
 
     comps = {"vegetation_stress": veg, "water_stress": water, "heat_stress": heat, "frost_risk": frost}
     weights = {"vegetation_stress": 0.4, "water_stress": 0.3, "heat_stress": 0.2, "frost_risk": 0.1}

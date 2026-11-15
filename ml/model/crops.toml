@@ -8,6 +8,7 @@
 
 [crops.corn]
 name = "Mısır"
+name_en = "Corn (maize)"
 family = "poaceae"
 season = "warm"
 water_need = 0.80
@@ -25,6 +26,7 @@ wet_tol = 0.80
 
 [crops.soybean]
 name = "Soya"
+name_en = "Soybean"
 family = "fabaceae"
 season = "warm"
 water_need = 0.60
@@ -42,6 +44,7 @@ wet_tol = 0.80
 
 [crops.winter_wheat]
 name = "Kışlık buğday"
+name_en = "Winter wheat"
 family = "poaceae"
 season = "cool"
 water_need = 0.45
@@ -59,6 +62,7 @@ wet_tol = 0.60
 
 [crops.sorghum]
 name = "Sorgum"
+name_en = "Sorghum"
 family = "poaceae"
 season = "warm"
 water_need = 0.40
@@ -76,6 +80,7 @@ wet_tol = 0.60
 
 [crops.cotton]
 name = "Pamuk"
+name_en = "Cotton"
 family = "malvaceae"
 season = "warm"
 water_need = 0.65
@@ -93,6 +98,7 @@ wet_tol = 0.50
 
 [crops.sunflower]
 name = "Ayçiçeği"
+name_en = "Sunflower"
 family = "asteraceae"
 season = "warm"
 water_need = 0.45
@@ -110,6 +116,7 @@ wet_tol = 0.40
 
 [crops.chickpea]
 name = "Nohut"
+name_en = "Chickpea"
 family = "fabaceae"
 season = "cool"
 water_need = 0.35
@@ -127,6 +134,7 @@ wet_tol = 0.15
 
 [crops.alfalfa]
 name = "Yonca"
+name_en = "Alfalfa"
 family = "fabaceae"
 season = "perennial"
 water_need = 0.85
@@ -144,6 +152,7 @@ wet_tol = 0.60
 
 [crops.cereal_rye]
 name = "Çavdar (örtü bitkisi)"
+name_en = "Cereal rye (cover crop)"
 family = "poaceae"
 season = "cool"
 cover_crop = true
@@ -162,6 +171,7 @@ wet_tol = 0.80
 
 [crops.hairy_vetch]
 name = "Tüylü fiğ (örtü bitkisi)"
+name_en = "Hairy vetch (cover crop)"
 family = "fabaceae"
 season = "cool"
 cover_crop = true
@@ -180,6 +190,7 @@ wet_tol = 0.70
 
 [crops.fallow]
 name = "Nadas"
+name_en = "Fallow"
 family = "none"
 season = "none"
 water_need = 0.0
@@ -198,52 +209,65 @@ wet_tol = 1.00
 # Rotasyonlar: her eleman bir sezon; "ana+örtü" yazımıyla örtü bitkisi eklenir.
 [rotations.corn_corn]
 name = "Sürekli mısır (monokültür)"
+name_en = "Continuous corn (monoculture)"
 seq = ["corn"]
 
 [rotations.corn_soy]
 name = "Mısır → Soya"
+name_en = "Corn → Soybean"
 seq = ["corn", "soybean"]
 
 [rotations.corn_soy_rye]
 name = "Mısır → Soya + çavdar örtü bitkisi"
+name_en = "Corn → Soybean + cereal rye cover"
 seq = ["corn+cereal_rye", "soybean+cereal_rye"]
 
 [rotations.corn_soy_wheat_vetch]
 name = "Mısır → Soya → Buğday + fiğ"
+name_en = "Corn → Soybean → Wheat + vetch"
 seq = ["corn", "soybean", "winter_wheat+hairy_vetch"]
 
 [rotations.sorghum_soy_wheat]
 name = "Sorgum → Soya → Buğday"
+name_en = "Sorghum → Soybean → Wheat"
 seq = ["sorghum", "soybean", "winter_wheat"]
 
 [rotations.wheat_sorghum_fallow]
 name = "Buğday → Sorgum → Nadas"
+name_en = "Wheat → Sorghum → Fallow"
 seq = ["winter_wheat", "sorghum", "fallow"]
 
 [rotations.wheat_fallow]
 name = "Buğday → Nadas"
+name_en = "Wheat → Fallow"
 seq = ["winter_wheat", "fallow"]
 
 [rotations.wheat_chickpea]
 name = "Buğday → Nohut"
+name_en = "Wheat → Chickpea"
 seq = ["winter_wheat", "chickpea"]
 
 [rotations.sunflower_wheat]
 name = "Ayçiçeği → Buğday"
+name_en = "Sunflower → Wheat"
 seq = ["sunflower", "winter_wheat"]
 
 [rotations.alfalfa_corn]
 name = "Yonca (3 yıl) → Mısır (2 yıl)"
+name_en = "Alfalfa (3 yr) → Corn (2 yr)"
 seq = ["alfalfa", "alfalfa", "alfalfa", "corn", "corn"]
 
 [rotations.cotton_corn]
 name = "Pamuk → Mısır"
+name_en = "Cotton → Corn"
 seq = ["cotton", "corn"]
 
 [rotations.cotton_rye]
 name = "Pamuk + çavdar örtü bitkisi"
+name_en = "Cotton + cereal rye cover"
 seq = ["cotton+cereal_rye"]
 
 [rotations.cotton_soy_wheat]
 name = "Pamuk → Soya → Buğday"
+name_en = "Cotton → Soybean → Wheat"
 seq = ["cotton", "soybean", "winter_wheat"]

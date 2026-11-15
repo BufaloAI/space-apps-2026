@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from 'react'
 import * as api from './api'
+import { serverText } from './i18n'
 import type { Field, FieldInfo } from './model'
 
 export type Phase = 'idle' | 'joining' | 'queued' | 'active' | 'ended' | 'offline'
@@ -160,7 +161,15 @@ export function useBackend() {
   return c
 }
 
-export function BackendProvider({ children, t }: { children: ReactNode; t: (tr: string, en: string) => string }) {
+export function BackendProvider({
+  children,
+  t,
+  lang,
+}: {
+  children: ReactNode
+  t: (tr: string, en: string) => string
+  lang: 'tr' | 'en'
+}) {
   const [state, setState] = useState<State>(initial)
   const ref = useRef(state)
   ref.current = state
@@ -169,6 +178,8 @@ export function BackendProvider({ children, t }: { children: ReactNode; t: (tr: 
   const lastTouch = useRef(0)
   const tr = useRef(t)
   tr.current = t
+  const language = useRef(lang)
+  language.current = lang
   const patch = useCallback((p: Partial<State>) => setState((s) => ({ ...s, ...p })), [])
 
   /** Turns an API failure into session state (ended/queued) or a visible notice. */
@@ -206,11 +217,11 @@ export function BackendProvider({ children, t }: { children: ReactNode; t: (tr: 
           return
         case 'invalid':
           patch({
-            notice: e.userText ?? t('Geçersiz girdi.', 'Invalid input.'),
+            notice: serverText(language.current, e.userText) || t('Geçersiz girdi.', 'Invalid input.'),
           })
           return
         default:
-          patch({ notice: e.userText ?? t('Sunucu hatası.', 'Server error.') })
+          patch({ notice: serverText(language.current, e.userText) || t('Sunucu hatası.', 'Server error.') })
       }
     },
     [patch],
@@ -388,7 +399,7 @@ export function BackendProvider({ children, t }: { children: ReactNode; t: (tr: 
       const sid = ref.current.sid
       if (!sid) return
       try {
-        const { job_id } = await api.startAnalysis(sid, field.geometry, date, options)
+        const { job_id } = await api.startAnalysis(sid, field.geometry, date, options, language.current)
         // A new analysis wipes the previous conversation on the backend too.
         patch({
           notice: null,
@@ -419,7 +430,7 @@ export function BackendProvider({ children, t }: { children: ReactNode; t: (tr: 
       const sid = ref.current.sid
       if (!sid) return
       try {
-        const { job_id } = await api.askAgents(sid, message, agent)
+        const { job_id } = await api.askAgents(sid, message, agent, language.current)
         patch({ notice: null, job: { id: job_id, kind: 'ask', status: 'running', error: null }, idleRemaining: null })
         follow(sid, job_id)
       } catch (e) {

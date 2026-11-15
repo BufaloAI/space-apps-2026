@@ -4,7 +4,7 @@ import { booleanValid } from '@turf/boolean-valid'
 export type Language = 'tr' | 'en'
 export type Translate = (tr: string, en: string) => string
 export type Page =
-  'intro' | 'map' | 'fields' | 'climate' | 'indicators' | 'data' | 'ai'
+  'intro' | 'map' | 'fields' | 'climate' | 'indicators' | 'data' | 'ai' | 'planner'
 export type View = { center: [number, number]; zoom: number }
 export type FieldInfo = {
   name: string

@@ -54,11 +54,12 @@ def test_default_agents_file_is_valid():
     assert len(agents) == 2
     # gerçek ML (ml/service.py to_layers) katman adları
     real = {"ndvi_tahmin", "risk", "iklim", "rotasyon_1", "rotasyon_2", "rotasyon_3", "rotasyon_mevcut",
-            "rotasyon_secilen"}
+            "rotasyon_secilen", "hava_tahmini", "yagis_tahmini", *(f"rotasyon_ozel_{i}" for i in range(1, 6))}
     for a in agents:
         assert set(a.layers) | set(a.optional_layers) <= real
     assert agents[0].layers == ("ndvi_tahmin", "risk", "iklim")
-    assert agents[1].optional_layers == ("rotasyon_mevcut", "rotasyon_secilen")
+    assert agents[0].optional_layers == ("hava_tahmini", "yagis_tahmini")
+    assert agents[1].optional_layers[:2] == ("rotasyon_mevcut", "rotasyon_secilen")
 
 
 @pytest.mark.parametrize(

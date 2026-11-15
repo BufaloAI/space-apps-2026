@@ -27,6 +27,7 @@ import {
   type Metric,
 } from './climate'
 import { download, type Field, type Page, type Translate } from './model'
+import { OutlookPanel } from './Outlook'
 export default function Analytics({
   page,
   t,
@@ -279,6 +280,7 @@ export default function Analytics({
               )}
             </ResponsiveContainer>
           </div>
+          <OutlookPanel field={field} t={t} />
           <details>
             <summary>{t('Grafik değerleri', 'Chart values')}</summary>
             <table>

@@ -69,13 +69,53 @@ def snap(v: float) -> float:
     return round(round(v / GRID_DEG) * GRID_DEG, 2)
 
 
+def _outlook_compute(lat: float, lon: float, today: dt.date) -> dict | None:
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    from ml.model import outlook as OL  # noqa: PLC0415
+
+    res = OL.outlook(OL.fetch_daily(lat, lon, today))
+    if res is not None:
+        res["confidence"] = {v: OL.confidence(res, v) for v in OL.VARS}
+    return res
+
+
 class ClimateStore:
     def __init__(self, cache_dir: str | Path | None = None, fetcher: Fetcher | None = None,
                  today: Callable[[], dt.date] = dt.date.today) -> None:
         self.cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
         self.fetcher = fetcher or _power_fetch
         self.today = today
+        self.outlook_fn: Callable[[float, float, dt.date], dict | None] = _outlook_compute
         self._locks: dict[str, asyncio.Lock] = {}
+
+    async def outlook(self, lat: float, lon: float) -> dict:
+        """4 haftalık hava görünümü; aynı gün aynı 0.1° hücre için önbellekten."""
+        if not -90 <= lat <= 90 or not -180 <= lon <= 180:
+            raise ValueError("Koordinat aralık dışında")
+        lat, lon = snap(lat), snap(lon)
+        today = self.today()
+        path = self.cache_dir / f"outlook_{lat:.2f}_{lon:.2f}_{today.isoformat()}.json"
+        lock = self._locks.setdefault(path.name, asyncio.Lock())
+        async with lock:
+            if path.exists():
+                try:
+                    return {**json.loads(path.read_text()), "cached": True}
+                except (OSError, ValueError):
+                    pass
+            try:
+                res = await asyncio.to_thread(self.outlook_fn, lat, lon, today)
+            except Exception as e:  # noqa: BLE001
+                log.warning("hava görünümü hesaplanamadı (%s, %s): %s", lat, lon, e)
+                raise ClimateError("Hava görünümü için NASA POWER geçmişi alınamadı; biraz sonra tekrar deneyin.") from e
+            if res is None:
+                raise ClimateError("Bu nokta için yeterli iklim geçmişi yok (en az 5 yıl gerekir).")
+            res = {**res, "lat": lat, "lon": lon}
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            for old in self.cache_dir.glob(f"outlook_{lat:.2f}_{lon:.2f}_*.json"):  # dünkü kopyaları sil
+                old.unlink(missing_ok=True)
+            path.write_text(json.dumps(res, ensure_ascii=False))
+            return {**res, "cached": False}
 
     def _path(self, lat: float, lon: float, year: int) -> Path:
         return self.cache_dir / f"power_{lat:.2f}_{lon:.2f}_{year}.json"

@@ -101,3 +101,25 @@ Tarih: 2026-11-14. Kaynak talimat: `ml-bot-instructions.md`.
 - `analyze.py` su stresi referansı aynı mevsimin medyanı (service.py ile aynı, `risk.seasonal_reference`).
 - `climatology()` gerçek ufku kullanıyor; monokültürün çeşitlilik puanı 1.0 -> 1/3.
 - CDL özellikleri (`crop_prev1`, `crop_expected`) yalnızca önceki yılları kullanıyor: sızıntı yok (testli).
+
+## Hava görünümü, küresel toprak, çiftçi ürünleri, aday üretimi (2026-11-15)
+- **Hava görünümü (`model/outlook.py`):** tarla koordinatının 15 yıllık POWER geçmişi -> yılın günü klimatolojisi
+  (±7 gün) + son 7/30 günün anomalisinden 1-4. hafta için doğrusal kalıcılık. Son 2 yıl geri test: beceri
+  (1 - MAE_model/MAE_normal) ve aralık (ilk yarıda ayar, ikinci yarıda ölçülen kapsama). Polatlı'da sıcaklıkta
+  beceri 1. haftada ~%2: haftalık anomali neredeyse kalıcı değil, yani görünüm pratikte **noktaya özgü mevsim
+  normali + aralık**. Eminlik beceriden (0.45 + 0.5 x beceri), bu yüzden "düşük" çıkar; arayüz ve bot bunu söyler.
+  Daha isabetli 1-2. hafta için gerçek sayısal tahmin (ör. Open-Meteo ECMWF/GFS) eklenebilir; yapılmadı.
+- **Risk ileriye bakar:** don/sıcak bileşeni = max(son 4 hafta gözlemi, önümüzdeki 2 haftanın beklenen gün sayısı);
+  beklenen yağış normalin altındaysa su stresine eklenir.
+- **Yeni türetilmiş özellikler (sonraki eğitim için):** `vpd_kpa` (+4w, anomali), `dtr_c`, `water_balance_mm`
+  (+4w, 12w). Mevcut model şemasında yok, canlı tahmini değiştirmez; budama eğitimde karar verir.
+- **Küresel toprak/eğim (`data_load/soil_global.py`):** SSURGO yoksa SoilGrids 250 m COG (0-30 cm) + Saxton & Rawls
+  (2006) ile AWC/Ksat/hidrolojik grup, Copernicus GLO-90 (Open-Meteo) 3x3 Horn eğimi. Kansas'ta SSURGO ile doku aynı
+  (kumlu tın), Iowa'da 250 m pürüzsüzleştirme yüzünden farklı (killi tın vs tın); AWC SSURGO'dan ~%25-30 düşük.
+  Tahmin olarak işaretlenir, rotasyon güven bonusu yarımdır. SoilGrids REST servisi kapalıydı; COG yolu çalışıyor.
+- **Çiftçi ürünleri/rotasyonları:** istekte gelir (tarayıcıda saklanır); `build_catalog` taban kataloğu kopyalayıp
+  ekler/üzerine yazar, `crops.toml` değişmez. Ekonomi (verim, fiyat, maliyet) yalnızca gösterim: brüt kâr.
+- **Aday üretimi:** 2-3 sezon, art arda aynı aile yok, en fazla bir nadas (yalnızca kurak alanda), uygunluk < 0.35
+  ürün elenir, kurak + sulamasız alanda örtü bitkili sürüm yok. Daha geniş arama sezgisel profillerin zayıflığını
+  açığa çıkardı (Iowa'da sorgum/ayçiçeği mısırı geçiyor) -> öneriler farklı ürün kümesinden seçilir ve en iyi
+  katalog rotasyonu her zaman ilk 3'te kalır. `crops.toml` değerleri yerel uzmanla gözden geçirilmeli.

@@ -17,9 +17,12 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from .agents import GROUNDING_RULES, AgentConfig, load_agents
+from typing import Literal
+
+from .agents import GROUNDING_RULES, GROUNDING_RULES_EN, AgentConfig, load_agents
 from .climate import ClimateError, ClimateStore
 from .config import cors_origins, load_settings
 from .geo import Parcel, PolygonError, parse_polygon
@@ -212,33 +215,56 @@ async def job_events(job_id: str, session_id: str, request: Request, after: int 
 # ---------------------------------------------------------------------------
 # Bot istemleri
 # ---------------------------------------------------------------------------
-def _system_message(agent: AgentConfig) -> dict:
+Lang = Literal["tr", "en"]
+_EN_REPLY = "\n\nAnswer in English."
+# Türkçe uzun prompt + Türkçe veri, sondaki tek cümlelik talimatı bastırabiliyor: İngilizcede dil talimatı başa da konur.
+_EN_FIRST = ("LANGUAGE: The user reads English. Write your whole answer in English, even though the instructions "
+             "and data below are in Turkish. Translate crop names and terms.\n\n")
+
+
+def _system_message(agent: AgentConfig, lang: str = "tr") -> dict:
+    if lang == "en":
+        return {"role": "system", "content": f"{_EN_FIRST}{agent.system_prompt}\n\n{GROUNDING_RULES_EN}"}
     return {"role": "system", "content": f"{agent.system_prompt}\n\n{GROUNDING_RULES}"}
 
 
-def _layer_lines(agent: AgentConfig, layers: list[Layer]) -> list[str]:
+def _layer_lines(agent: AgentConfig, layers: list[Layer], lang: str = "tr") -> list[str]:
     by_name = {layer.name: layer for layer in layers}
-    lines = [
-        f"- {by_name[n].summary()}" if n in by_name else f"- {n}: veri yok (ML bu katmanı üretemedi)"
-        for n in agent.layers
-    ]
-    lines += [f"- {by_name[n].summary()}" for n in agent.optional_layers if n in by_name]
+    en = lang == "en"
+
+    def line(n: str) -> str:
+        return f"- {by_name[n].summary_en() if en else by_name[n].summary()}"
+
+    missing = "no data (the ML could not produce this layer)" if en else "veri yok (ML bu katmanı üretemedi)"
+    lines = [line(n) if n in by_name else f"- {n}: {missing}" for n in agent.layers]
+    lines += [line(n) for n in agent.optional_layers if n in by_name]
     return lines
 
 
-def _ml_notes(layers: list[Layer]) -> list[str]:
+def _ml_notes(layers: list[Layer], lang: str = "tr") -> list[str]:
     """Gerçek ML'in uyarıları (veri gecikmesi, eksik kaynak) ve bilgi boşlukları; sahte ML'de boş."""
     meta = next((lay.details["_meta"] for lay in layers if lay.details and "_meta" in lay.details), None)
     if not meta:
         return []
+    if lang == "en":
+        return [*(meta.get("warnings_en") or meta.get("warnings", [])),
+                *(meta.get("information_gaps_en") or meta.get("information_gaps", []))[:4]]
     return [*meta.get("warnings", []), *meta.get("information_gaps", [])[:4]]
 
 
-def _data_message(agent: AgentConfig, parcel: Parcel, date: dt.date, layers: list[Layer]) -> dict:
+def _data_message(agent: AgentConfig, parcel: Parcel, date: dt.date, layers: list[Layer], lang: str = "tr") -> dict:
     """Botun yalnızca kendi katmanlarını içeren istem. Eksik katman açıkça 'veri yok' denir."""
-    lines = _layer_lines(agent, layers)
-    notes = _ml_notes(layers)
+    lines = _layer_lines(agent, layers, lang)
+    notes = _ml_notes(layers, lang)
     lon, lat = parcel.centroid
+    if lang == "en":
+        text = (
+            f"Parcel: about {parcel.area_ha:.1f} hectares, centre {lat:.4f} N, {lon:.4f} E. "
+            f"Analysis date: {date.isoformat()}.\nYour data:\n" + "\n".join(lines) +
+            ("\nNotes (data limits):\n" + "\n".join(f"- {n}" for n in notes) if notes else "") +
+            f"\n\nInterpret this data from your own perspective in at most {agent.max_sentences} sentences, in English."
+        )
+        return {"role": "user", "content": text}
     text = (
         f"Parsel: yaklaşık {parcel.area_ha:.1f} hektar, merkez {lat:.4f} K, {lon:.4f} D. "
         f"Analiz tarihi: {date.isoformat()}.\n"
@@ -305,11 +331,44 @@ class FarmProfile(BaseModel):
         return d
 
 
+class CustomCrop(BaseModel):
+    """Çiftçinin eklediği ürün (ya da aynı kimlikle katalog ürününü kendi değerleriyle değiştirmesi).
+    0-1 alanlar crops.toml ile aynı anlamdadır; ekonomi alanları çiftçinin kendi hesabıdır (isteğe bağlı)."""
+
+    id: str = Field(min_length=1, max_length=40, pattern=r"^[a-z0-9_]+$")
+    name: str = Field(min_length=1, max_length=60)
+    family: str = Field(default="other", max_length=30)
+    season: str = Field(default="warm", pattern=r"^(warm|cool|perennial|none)$")
+    water_need: float = Field(0.5, ge=0, le=1)
+    drought_tol: float = Field(0.5, ge=0, le=1)
+    heat_tol: float = Field(0.5, ge=0, le=1)
+    frost_tol: float = Field(0.5, ge=0, le=1)
+    residue_cover: float = Field(0.5, ge=0, le=1)
+    om: float = Field(0.5, ge=0, le=1)
+    market: float = Field(0.5, ge=0, le=1)
+    forage: float = Field(0.3, ge=0, le=1)
+    n_need: float = Field(0.5, ge=0, le=1)
+    wet_tol: float = Field(0.7, ge=0, le=1)
+    gdd_need: float = Field(0, ge=0, le=5000)
+    n_fix: bool = False
+    cover_crop: bool = False
+    yield_t_ha: float | None = Field(default=None, ge=0, le=500)
+    price_per_t: float | None = Field(default=None, ge=0, le=1e9)
+    cost_per_ha: float | None = Field(default=None, ge=0, le=1e9)
+
+
+class CustomRotation(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    seq: str = Field(min_length=1, max_length=300)  # "corn+cereal_rye>soybean>custom_lentil"
+
+
 class RotationOptions(BaseModel):
     existing_rotation: str | None = Field(default=None, max_length=200)  # örn. "corn>soybean"
     chosen_rotation: str | None = Field(default=None, max_length=200)  # çiftçinin değerlendirmek istediği
     priorities: dict[str, float] | None = None  # örn. {"water": 2, "income": 1}
     profile: FarmProfile | None = None
+    custom_crops: list[CustomCrop] | None = Field(default=None, max_length=30)
+    custom_rotations: list[CustomRotation] | None = Field(default=None, max_length=30)
 
     @field_validator("priorities")
     @classmethod
@@ -325,11 +384,16 @@ class RotationOptions(BaseModel):
 
     def as_options(self) -> dict:
         return {"existing_rotation": self.existing_rotation, "chosen_rotation": self.chosen_rotation,
-                "priorities": self.priorities, "profile": self.profile.as_dict() if self.profile else None}
+                "priorities": self.priorities, "profile": self.profile.as_dict() if self.profile else None,
+                "custom_crops": [c.model_dump(exclude_none=True) for c in self.custom_crops]
+                if self.custom_crops is not None else None,
+                "custom_rotations": [r.model_dump() for r in self.custom_rotations]
+                if self.custom_rotations is not None else None}
 
 
 class AnalysisRequest(RotationOptions):
     session_id: str
+    lang: Lang = "tr"  # botların cevap dili (veri ve katmanlar her zaman iki dilli gelir)
     polygon: dict  # GeoJSON Polygon (veya Polygon içeren Feature), [boylam, enlem]
     # Kayıt için. Gerçek ML her zaman bugüne kadarki güncel veriyi kullanır.
     date: dt.date = Field(default_factory=dt.date.today)
@@ -359,7 +423,7 @@ async def start_analysis(req: AnalysisRequest, request: Request):
                 "stage": "ml", "status": "started", "date": req.date.isoformat(),
                 "parcel": {"area_ha": round(parcel.area_ha, 2), "centroid": list(parcel.centroid)},
             })
-            options = req.as_options()
+            options = {**req.as_options(), "lang": req.lang}  # yeniden puanlamada bota giden veri aynı dilde
             layers, errors = await run_providers(
                 st.ml_providers, parcel, req.date, options=options,
                 progress=lambda p: job.publish({"stage": "ml", "status": "progress", "progress": p}),
@@ -375,7 +439,10 @@ async def start_analysis(req: AnalysisRequest, request: Request):
                 return
             job.publish({"stage": "agents", "agents": [a.public() for a in st.agents]})
             session.agent_history.clear()
-            jobs = [(a, [_system_message(a), _data_message(a, parcel, req.date, layers)]) for a in st.agents]
+            def data(a):
+                return _data_message(a, parcel, req.date, layers, req.lang)
+
+            jobs = [(a, [_system_message(a, req.lang), data(a)]) for a in st.agents]
             await _run_agents(jobs, st.llm, session, job, st.settings.history_max_messages)
             job.publish({"done": True})
         except asyncio.CancelledError:
@@ -397,6 +464,7 @@ class AskRequest(BaseModel):
     session_id: str
     message: str = Field(min_length=1, max_length=2000)
     agent: str | None = None  # boşsa iki bota (tüm botlara) birden sorulur
+    lang: Lang = "tr"
 
 
 @app.post("/api/ask", status_code=202)
@@ -412,7 +480,7 @@ async def ask(req: AskRequest, request: Request):
         if not selected:
             raise HTTPException(422, "Bilinmeyen bot")
     analysis = session.analysis
-    question = {"role": "user", "content": req.message}
+    question = {"role": "user", "content": req.message + (_EN_REPLY if req.lang == "en" else "")}
 
     async def run(job: Job) -> None:
         try:
@@ -421,13 +489,13 @@ async def ask(req: AskRequest, request: Request):
             for a in selected:
                 # analizi başarısız olmuş bot için veri mesajı yeniden kurulur
                 history = session.agent_history.get(a.id) or [
-                    _data_message(a, analysis.parcel, analysis.date, analysis.layers)
+                    _data_message(a, analysis.parcel, analysis.date, analysis.layers, req.lang)
                 ]
                 q = question
                 update = session.pending_updates.pop(a.id, None)
                 if update and session.agent_history.get(a.id):  # yeniden kurulan veri mesajı zaten güncel
-                    q = {"role": "user", "content": f"[Güncellenmiş veri]\n{update}\n\n[Soru]\n{req.message}"}
-                jobs.append((a, [_system_message(a), *history, q]))
+                    q = {"role": "user", "content": f"[Güncellenmiş veri]\n{update}\n\n[Soru]\n{question['content']}"}
+                jobs.append((a, [_system_message(a, req.lang), *history, q]))
             await _run_agents(jobs, st.llm, session, job, st.settings.history_max_messages)
             job.publish({"done": True})
         except asyncio.CancelledError:
@@ -450,6 +518,22 @@ def _xgb_provider(request: Request) -> XGBoostMLProvider:
     if p is None:
         raise HTTPException(503, "Gerçek ML sağlayıcısı etkin değil (ML_PROVIDER=xgboost).")
     return p
+
+
+@app.get("/api/crops/suggestions")
+async def crop_suggestions(session_id: str, request: Request, exclude: str = ""):
+    """Son analizin iklimine uygun ve çiftçinin listesinde olmayan ürünler (kütüphane + katalog). `exclude`:
+    virgülle ayrılmış ürün kimlikleri (çiftçinin zaten eklediği). Anında; LLM/veri çekmez."""
+    st = request.app.state
+    provider = _xgb_provider(request)
+    session = _require_active(st.sessions, session_id, allow_busy=True)
+    if session.analysis is None:
+        raise HTTPException(409, detail={"status": "no_analysis"})
+    ids = {x.strip() for x in exclude.split(",") if x.strip()}
+    try:
+        return provider.suggest_crops(session.analysis.parcel, ids, session.analysis.options.get("profile"))
+    except MLUserError as e:
+        raise HTTPException(409, str(e)) from None
 
 
 @app.get("/api/rotations/catalog")
@@ -475,7 +559,8 @@ async def rescore_rotations(req: RescoreRequest, request: Request):
     merged = {**analysis.options, **{k: v for k, v in req.as_options().items() if v is not None}}
     try:
         new_layers = provider.rescore(analysis.parcel, merged.get("existing_rotation"), merged.get("chosen_rotation"),
-                                      merged.get("priorities"), merged.get("profile"))
+                                      merged.get("priorities"), merged.get("profile"),
+                                      merged.get("custom_crops"), merged.get("custom_rotations"))
     except MLUserError as e:
         raise HTTPException(422, str(e)) from None
     analysis.layers = [lay for lay in analysis.layers if not lay.name.startswith("rotasyon_")] + new_layers
@@ -484,7 +569,7 @@ async def rescore_rotations(req: RescoreRequest, request: Request):
     names = {lay.name for lay in new_layers}
     for a in st.agents:
         if names & {*a.layers, *a.optional_layers} or any(n.startswith("rotasyon_") for n in a.layers):
-            session.pending_updates[a.id] = "\n".join(_layer_lines(a, analysis.layers))
+            session.pending_updates[a.id] = "\n".join(_layer_lines(a, analysis.layers, merged.get("lang", "tr")))
     return {"layers": [lay.to_dict() for lay in new_layers], "options": merged}
 
 
@@ -501,3 +586,40 @@ async def climate_daily(lat: float, lon: float, year: int, request: Request):
         raise HTTPException(422, str(e)) from None
     except ClimateError as e:
         raise HTTPException(502, str(e)) from None
+
+
+@app.get("/api/climate/outlook")
+async def climate_outlook(lat: float, lon: float, request: Request):
+    """Önümüzdeki 4 hafta için hava görünümü (noktanın 15 yıllık NASA POWER geçmişinden). Günlük önbellek."""
+    store: ClimateStore = request.app.state.climate
+    try:
+        return await store.outlook(lat, lon)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from None
+    except ClimateError as e:
+        raise HTTPException(502, str(e)) from None
+
+
+
+# ---------------------------------------------------------------------------
+# Derlenmiş site (isteğe bağlı): SITE_DIR=bufaloai-site/dist verilirse site ve API aynı porttan sunulur
+# (tek süreç, CORS yok, tünel/barındırma için). /api yolları yukarıda tanımlı olduğu için önce onlar eşleşir.
+# ---------------------------------------------------------------------------
+def _mount_site() -> None:
+    import os
+    from pathlib import Path
+
+    site = os.environ.get("SITE_DIR", "").strip()
+    if not site:
+        return
+    path = Path(site)
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parents[2] / path
+    if not (path / "index.html").exists():
+        log.warning("SITE_DIR=%s içinde index.html yok; site sunulmuyor (önce npm run build)", path)
+        return
+    app.mount("/", StaticFiles(directory=path, html=True), name="site")
+    log.info("Site sunuluyor: %s", path)
+
+
+_mount_site()

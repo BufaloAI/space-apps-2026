@@ -1165,6 +1165,314 @@ button:hover:enabled:not(.primary):not(.brandlink) {
     grid-template-columns: 1fr 2fr 30px;
   }
 }
+/* ---------------------------------------------------------------- farmer tools, outlook */
+.tools {
+  display: grid;
+  gap: 14px;
+  margin: 10px 0 20px;
+}
+.tools > .segmented {
+  justify-self: start;
+  flex-wrap: wrap;
+}
+.tool,
+.crop-form {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  background: var(--surface);
+  display: grid;
+  gap: 12px;
+  max-width: 760px;
+}
+.tool h4 {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+.analytic .tool .hint,
+.analytic .crop-form .hint {
+  margin: 0;
+}
+.crop-form label,
+.tool .name {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.form-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.checks label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink);
+}
+.crop-sliders,
+.econ {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.crop-sliders legend,
+.econ legend {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.crop-sliders .slider {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.4fr) 44px 2fr 44px 36px;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+}
+.crop-sliders .slider small {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-align: center;
+}
+.econ > small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.row-actions .primary,
+.row-actions .outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.saved {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.saved li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.saved li > span {
+  flex: 1;
+  display: grid;
+  min-width: 0;
+}
+.saved small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.saved .empty {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.saved .is-broken b {
+  text-decoration: line-through;
+  color: var(--bad);
+}
+.builder {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.builder li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.builder select {
+  min-width: 0;
+  flex: 1 1 140px;
+}
+.season-no {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--soft);
+  display: inline-grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+.builder .arrow {
+  color: var(--muted);
+}
+.src {
+  font-style: normal;
+  font-weight: 600;
+}
+.src-otomatik {
+  color: var(--mid);
+}
+.src-çiftçi {
+  color: var(--ok);
+}
+.analytic .econ-line {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.outlook {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+.outlook table {
+  font-size: 12px;
+}
+.outlook th,
+.outlook td {
+  padding: 6px 6px;
+}
+.outlook td small,
+.outlook th small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.layer-grid .layer-card:has(.outlook) {
+  grid-column: 1 / -1;
+}
+.outlook-panel {
+  margin-top: 28px;
+}
+.outlook-panel h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (max-width: 740px) {
+  .crop-sliders .slider {
+    grid-template-columns: 1fr 36px;
+  }
+  .crop-sliders .slider small {
+    display: none;
+  }
+  .crop-sliders .slider input {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .form-grid.three {
+    grid-template-columns: 1fr;
+  }
+}
+/* ---------------------------------------------------------------- crops & rotations page */
+.planner-tabs {
+  margin: 4px 0 16px;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+}
+.planner-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tools > h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 8px 0 0;
+}
+.search-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0 10px;
+  max-width: 360px;
+}
+.search-line input {
+  border: 0;
+  background: transparent;
+  flex: 1;
+  padding: 8px 0;
+  min-width: 0;
+}
+.library {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
+}
+.library li {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  justify-content: space-between;
+  background: var(--surface);
+}
+.library li > span:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.library b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.library small {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.library .outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.library .added {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--ok);
+  flex: none;
+}
+.suggestions {
+  display: grid;
+  gap: 10px;
+}
+.suggestions [role='status'] {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.linkish {
+  color: var(--forest);
+  text-decoration: underline;
+  padding: 0;
+  font-size: inherit;
+}
 @media (max-width: 1000px) {
   .header-end {
     gap: 15px;

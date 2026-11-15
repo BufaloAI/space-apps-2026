@@ -64,3 +64,24 @@ def test_leave_via_post_for_send_beacon(client):
     assert client.post(f"/api/session/{a['session_id']}/leave").json() == {"ok": True}
     assert client.get(f"/api/session/{b['session_id']}").json()["status"] == "active"
     assert client.post(f"/api/session/{a['session_id']}/leave").status_code == 404
+
+
+def test_site_served_when_site_dir_set(monkeypatch, tmp_path):
+    import importlib
+
+    (tmp_path / "index.html").write_text("<!doctype html><title>BUFALOAI</title>")
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "index.html").write_text("<!doctype html><title>APP</title>")
+    monkeypatch.setenv("VLLM_API_KEY", "test-key")
+    monkeypatch.setenv("SITE_DIR", str(tmp_path))
+    import app.main as m
+
+    m = importlib.reload(m)
+    try:
+        with TestClient(m.app) as c:
+            assert "BUFALOAI" in c.get("/").text
+            assert "APP" in c.get("/app/").text
+            assert c.get("/api/health").json()["ok"] is True  # API önce eşleşir
+    finally:
+        monkeypatch.delenv("SITE_DIR")
+        importlib.reload(m)
