@@ -1,7 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
+// Backend (FastAPI) runs on this machine; proxying /api avoids CORS in dev and preview.
+// Override with BUFALOAI_API=http://host:port npm run dev
+const api = process.env.BUFALOAI_API ?? 'http://127.0.0.1:8000'
+const proxy = { '/api': { target: api, changeOrigin: true } }
 export default defineConfig({
+  server: { proxy },
+  preview: { proxy },
   plugins: [
     react(),
     // Static hosting must also serve direct requests and refreshes at both entry routes.

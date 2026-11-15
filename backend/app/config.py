@@ -30,6 +30,7 @@ class Settings:
     ml_cache_dir: str | None  # boşsa ml/cache/parcels
     ml_ndvi_timeout_seconds: float
     ml_ndvi_retries: int
+    climate_cache_dir: str | None  # boşsa ml/cache/climate
 
 
 def cors_origins() -> list[str]:
@@ -62,4 +63,5 @@ def load_settings() -> Settings:
         ml_cache_dir=os.environ.get("ML_CACHE_DIR", "").strip() or None,
         ml_ndvi_timeout_seconds=float(os.environ.get("ML_NDVI_TIMEOUT_SECONDS", "60")),
         ml_ndvi_retries=int(os.environ.get("ML_NDVI_RETRIES", "3")),
+        climate_cache_dir=os.environ.get("CLIMATE_CACHE_DIR", "").strip() or None,
     )

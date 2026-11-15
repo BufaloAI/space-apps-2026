@@ -16,13 +16,14 @@ import {
   Sprout,
   Activity,
   Wind,
-  BrainCircuit,
+  Satellite,
+  Loader2,
 } from 'lucide-react'
 import {
   aggregate,
-  demonstrationClimate,
   indicators,
   metrics,
+  useClimate,
   type Metric,
 } from './climate'
 import { download, type Field, type Page, type Translate } from './model'
@@ -41,19 +42,27 @@ export default function Analytics({
   selected: string
   select: (id: string) => void
 }) {
-  const [year, setYear] = useState(2025),
+  const thisYear = new Date().getFullYear()
+  const yearOptions = Array.from({ length: 6 }, (_, i) => thisYear - i)
+  const [year, setYear] = useState(thisYear - 1),
     [metric, setMetric] = useState<Metric>('temperature'),
     [period, setPeriod] = useState('month'),
     [base, setBase] = useState(10),
     [threshold, setThreshold] = useState(25),
     [month, setMonth] = useState(1)
-  const rows = useMemo(
-    () => demonstrationClimate.getDailySeries(year, selected),
-    [year, selected],
-  )
+  const field = fields.find((f) => f.id === selected)
+  const span =
+    page === 'climate' && period === 'year'
+      ? Array.from({ length: 5 }, (_, i) => year - 4 + i)
+      : [year]
+  const climate = useClimate(field, span)
+  const { rows, live } = climate.rowsFor(year)
+  const isLive = climate.state.kind === 'live'
   const locale = lang === 'tr' ? 'tr-TR' : 'en-US'
-  const fmt = (n: number, d = 1) =>
-    n.toLocaleString(locale, { maximumFractionDigits: d })
+  const fmt = (n: number | null, d = 1) =>
+    n === null || !Number.isFinite(n)
+      ? '—'
+      : n.toLocaleString(locale, { maximumFractionDigits: d })
   const mon = (i: number) =>
     new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(
       Date.UTC(year, i, 1),
@@ -74,28 +83,14 @@ export default function Analytics({
         : Array.from({ length: 5 }, (_, i) => ({
             label: String(year - 4 + i),
             value: +aggregate(
-              demonstrationClimate.getDailySeries(year - 4 + i, selected),
+              climate.rowsFor(year - 4 + i).rows,
               metric,
             ).toFixed(3),
           })),
-    [rows, metric, period, year, selected, locale],
+    [rows, metric, period, year, selected, locale, climate.state],
   )
-  const field = fields.find((f) => f.id === selected),
-    keys = Object.keys(metrics) as Metric[],
+  const keys = Object.keys(metrics) as Metric[],
     daily = rows.filter((r) => +r.date.slice(5, 7) === month)
-  if (page === 'ai')
-    return (
-      <article className="analytic">
-        <BrainCircuit className="ai-icon" size={42} strokeWidth={1.2} />
-        <h1>{t('Yapay zekâ istihbaratı', 'AI intelligence')}</h1>
-        <p>
-          {t(
-            'Tarla ve iklim bilgilerine dayalı karar desteği bu alanda sunulacak. Model bağlantısı henüz etkin değil.',
-            'Field and climate decision support will appear here. A model connection is not yet available.',
-          )}
-        </p>
-      </article>
-    )
   const names =
     page === 'climate'
       ? t('İklim analizi', 'Climate analysis')
@@ -109,28 +104,66 @@ export default function Analytics({
       keys.map((k) => k + ' (' + unit(k) + ')').join(',') +
       '\r\n' +
       rows
-        .map((r) => [r.date, ...keys.map((k) => r[k].toFixed(3))].join(','))
+        .map((r) =>
+          [r.date, ...keys.map((k) => (r[k] === null ? '' : r[k]!.toFixed(3)))].join(','),
+        )
         .join('\r\n')
     download(
-      'BUFALOAI-DEMO-' + (field?.id || 'global') + '-' + year + '.csv',
+      'BUFALOAI-' +
+        (live ? 'POWER-' + live.lat + '_' + live.lon : 'DEMO-' + (field?.id || 'global')) +
+        '-' +
+        year +
+        '.csv',
       '\uFEFF' + data,
       'text/csv;charset=utf-8',
     )
   }
   return (
     <article className="analytic">
-      <div className="demo-label">
-        <FlaskConical size={14} />
-        {t('Gösterim verisi', 'Demonstration data')}
-      </div>
+      {climate.state.kind === 'loading' ? (
+        <div className="demo-label" role="status">
+          <Loader2 size={14} className="spin" />
+          {t('NASA POWER verisi alınıyor…', 'Fetching NASA POWER data…')}
+        </div>
+      ) : isLive && live ? (
+        <div className="demo-label live">
+          <Satellite size={14} />
+          NASA POWER · {live.lat.toFixed(1)}°, {live.lon.toFixed(1)}°
+          {live.stale && ' · ' + t('eski kopya', 'stale copy')}
+        </div>
+      ) : (
+        <div className="demo-label">
+          <FlaskConical size={14} />
+          {t('Gösterim verisi', 'Demonstration data')}
+        </div>
+      )}
       <div className="analytics-heading">
         <div>
           <h1>{names}</h1>
           <p>
-            {t(
-              'Sentetik günlük seri. Değerler gözlem veya tahmin değildir.',
-              'Synthetic daily series. Values are illustrative, not observations or forecasts.',
-            )}
+            {isLive && live
+              ? t(
+                  `Tarla merkezi için NASA POWER günlük model/uydu verisi (~50 km ızgara). ${
+                    live.complete ? 'Yıl tamamlandı.' : 'Son veri: ' + (live.last_date ?? '—') + '.'
+                  } Tarla ölçümü değildir; yerel ölçümünüz varsa onu esas alın.`,
+                  `NASA POWER daily model/satellite data for the field centre (~50 km grid). ${
+                    live.complete ? 'Full year.' : 'Latest data: ' + (live.last_date ?? '—') + '.'
+                  } Not an on-field measurement; prefer your own readings where you have them.`,
+                )
+              : climate.state.kind === 'failed'
+                ? (climate.state.message ??
+                    t('Gerçek veri alınamadı.', 'Live data unavailable.')) +
+                  ' ' +
+                  t(
+                    'Aşağıdaki değerler sentetiktir.',
+                    'Values below are synthetic.',
+                  )
+                : field
+                  ? t('Veri hazırlanıyor.', 'Preparing data.')
+                  : t(
+                      'Sentetik günlük seri. Gerçek NASA POWER verisi için bir tarla seçin.',
+                      'Synthetic daily series. Select a field for real NASA POWER data.',
+                    )}
           </p>
         </div>
         {page === 'data' && (
@@ -155,7 +188,7 @@ export default function Analytics({
         <label>
           {t('Yıl', 'Year')}
           <select value={year} onChange={(e) => setYear(+e.target.value)}>
-            {[2025, 2024, 2023, 2022, 2021].map((n) => (
+            {yearOptions.map((n) => (
               <option key={n}>{n}</option>
             ))}
           </select>

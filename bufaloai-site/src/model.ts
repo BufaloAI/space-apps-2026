@@ -12,6 +12,12 @@ export type FieldInfo = {
   planted: string
   irrigation: string
   notes: string
+  // Farmer's own knowledge, sent to the backend as `profile` / `existing_rotation`.
+  // Each value the farmer fills in raises the rotation confidence; blanks are never guessed.
+  soil_texture: string
+  soil_om_pct: string
+  slope_pct: string
+  existing_rotation: string
 }
 export type Field = Feature<Polygon, FieldInfo> & { id: string }
 export const blankInfo: FieldInfo = {
@@ -20,6 +26,10 @@ export const blankInfo: FieldInfo = {
   planted: '',
   irrigation: '',
   notes: '',
+  soil_texture: '',
+  soil_om_pct: '',
+  slope_pct: '',
+  existing_rotation: '',
 }
 export function read<T>(key: string, fallback: T): T {
   try {

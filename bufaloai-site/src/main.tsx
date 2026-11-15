@@ -17,7 +17,9 @@ import {
 } from 'lucide-react'
 import Intro from './Intro'
 import { Brand, LanguageSwitch } from './ui'
+import { BackendProvider } from './backend'
 import {
+  blankInfo,
   read,
   save,
   type Language,
@@ -27,7 +29,8 @@ import {
 } from './model'
 import './style.css'
 const MapWorkspace = lazy(() => import('./MapWorkspace')),
-  Analytics = lazy(() => import('./Analytics'))
+  Analytics = lazy(() => import('./Analytics')),
+  Intelligence = lazy(() => import('./Intelligence'))
 const pages: Page[] = [
   'intro',
   'map',
@@ -64,7 +67,13 @@ function App() {
   const [page, setPage] = useState<Page>(route),
     [lang, setLang] = useState<Language>(() => read('language', 'tr')),
     [theme, setTheme] = useState(() => read('theme', 'light')),
-    [fields, setFields] = useState<Field[]>(() => read('fields', [])),
+    // Older saved fields lack the farmer-data keys; fill them so forms stay controlled.
+    [fields, setFields] = useState<Field[]>(() =>
+      read<Field[]>('fields', []).map((f) => ({
+        ...f,
+        properties: { ...blankInfo, ...f.properties },
+      })),
+    ),
     [selected, select] = useState(() => read('selected', '')),
     [initial, setInitial] = useState<View | null>(null),
     [open, setOpen] = useState(false),
@@ -150,7 +159,7 @@ function App() {
     [BrainCircuit, 'ai', t('Yapay zekâ', 'AI intelligence')],
   ] as const
   return (
-    <>
+    <BackendProvider t={t}>
       {intro && (
         <Intro
           lang={lang}
@@ -279,6 +288,16 @@ function App() {
                   go={go}
                   initial={initial}
                 />
+              ) : workspacePage === 'ai' ? (
+                <Intelligence
+                  t={t}
+                  lang={lang}
+                  fields={fields}
+                  setFields={setFields}
+                  selected={selected}
+                  select={select}
+                  goFields={() => go('fields')}
+                />
               ) : (
                 <Analytics
                   t={t}
@@ -293,7 +312,7 @@ function App() {
           </section>
         </div>
       )}
-    </>
+    </BackendProvider>
   )
 }
 createRoot(document.getElementById('root')!).render(<App />)

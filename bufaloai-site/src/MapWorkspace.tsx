@@ -36,6 +36,7 @@ import {
   ChevronDown,
   LandPlot,
   Globe2,
+  BrainCircuit,
 } from 'lucide-react'
 import {
   blankInfo,
@@ -798,6 +799,11 @@ export default function MapWorkspace(props: Props) {
                 t('İklim analizi', 'Climate analysis'),
                 ChartNoAxesCombined,
                 () => go('climate'),
+              )}
+              {button(
+                t('Yapay zekâ analizi', 'AI analysis'),
+                BrainCircuit,
+                () => go('ai'),
               )}
               {button(t('Tarlayı sil', 'Delete field'), Trash2, () =>
                 setDeleting(true),

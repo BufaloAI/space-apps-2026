@@ -57,6 +57,7 @@ Başka hiçbir şey gönderilmez: model adı, prompt, ML ayarı, API key fronten
 | Parsel bilgisi | iş akışındaki `ml started` olayı | alan (hektar), merkez noktası |
 | Bot yorumları | iş akışı (SSE) | `delta` parçaları (token token), bot başına |
 | Anlık durum | `GET /api/jobs/{job_id}` | sayfa yenilenince ekranı yeniden kurmak için tüm durum |
+| Bölge iklim serisi | `GET /api/climate/daily` | seçili tarla merkezi için yıllık günlük NASA POWER verisi (5.7) |
 
 ## 5. Uç noktalar
 
@@ -237,6 +238,21 @@ Olay türleri (alanlara göre ayırt edin):
 - `kind`: `analysis` veya `ask` (ask'ta `question` dolu, `parcel/date/layers` boş).
 - `status`: `running` | `done` | `error` | `cancelled`. Bot `status`: `running` | `done` | `error`.
 - **Yeniden bağlanma tarifi:** `GET /api/session/{id}` → `job_id` varsa `GET /api/jobs/{job_id}` ile ekranı kur → `status` `running` ise SSE'ye `?after=<last_event_id>` ile bağlan.
+
+### 5.7 Bölge iklim serisi (NASA POWER, önbellekli)
+
+**`GET /api/climate/daily?lat=41.01&lon=29.02&year=2025`** → `200`. **Oturum gerektirmez** (LLM/ML slotunu kullanmaz); "İklim analizi / Tarımsal göstergeler / Veri gezgini" sayfaları için.
+```json
+{ "source": "NASA POWER (günlük, AG topluluğu)", "lat": 41.0, "lon": 29.0, "year": 2025,
+  "fetched_on": "2026-11-15", "complete": true, "last_date": "2025-12-31", "cached": true,
+  "units": {"temperature":"°C","rainfall":"mm/gün","humidity":"%","solar":"MJ/m²/gün","moisture":"0-1 (yüzey toprak ıslaklığı)"},
+  "days": [{"date":"2025-01-01","temperature":6.1,"rainfall":0.4,"humidity":81.2,"solar":5.3,"moisture":0.71}, …] }
+```
+- Nokta 0.1° ızgaraya yuvarlanır (POWER çözünürlüğü ~0.5°); yakın tarlalar aynı önbelleği paylaşır. Önbellek `ml/cache/climate/` (`CLIMATE_CACHE_DIR`).
+- Geçmiş yıllar (`complete: true`) kalıcı önbellekte; içinde bulunulan yıl günde bir yenilenir (POWER birkaç gün gecikmeli). Kaynak düşerse eski kopya `"stale": true` ile döner.
+- Eksik gün değeri `null`'dur (POWER `-999`).
+- Hata: `422` (yıl 1981–bu yıl dışında, koordinat aralık dışı), `502` (POWER'a ulaşılamadı, Türkçe metin).
+- Frontend tamamlanmış yılları `localStorage`'da da tutar (sohbet verisi değil, kamuya açık iklim verisi).
 
 ## 6. Oturum yaşam döngüsü (frontend'in sorumlulukları)
 

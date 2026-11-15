@@ -20,6 +20,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
 from .agents import GROUNDING_RULES, AgentConfig, load_agents
+from .climate import ClimateError, ClimateStore
 from .config import cors_origins, load_settings
 from .geo import Parcel, PolygonError, parse_polygon
 from .llm import LLM
@@ -50,6 +51,7 @@ async def lifespan(app: FastAPI):
     app.state.sessions = SessionManager(settings.idle_timeout_seconds, settings.queue_ttl_seconds)
     app.state.llm = LLM(settings)
     app.state.agents = load_agents(settings.agents_file)
+    app.state.climate = ClimateStore(settings.climate_cache_dir)
     app.state.ml_providers = build_providers(
         settings.ml_provider, fake_delay=settings.ml_fake_delay_seconds, model_dir=settings.ml_model_dir,
         cache_dir=settings.ml_cache_dir, ndvi_timeout=settings.ml_ndvi_timeout_seconds,
@@ -484,3 +486,18 @@ async def rescore_rotations(req: RescoreRequest, request: Request):
         if names & {*a.layers, *a.optional_layers} or any(n.startswith("rotasyon_") for n in a.layers):
             session.pending_updates[a.id] = "\n".join(_layer_lines(a, analysis.layers))
     return {"layers": [lay.to_dict() for lay in new_layers], "options": merged}
+
+
+# ---------------------------------------------------------------------------
+# Bölge iklim verisi (NASA POWER, önbellekli). Oturum gerektirmez; LLM/ML slotunu kullanmaz.
+# ---------------------------------------------------------------------------
+@app.get("/api/climate/daily")
+async def climate_daily(lat: float, lon: float, year: int, request: Request):
+    """Nokta (tarla merkezi) için bir yılın günlük iklim serisi. Geçmiş yıllar kalıcı, bu yıl günlük önbellek."""
+    store: ClimateStore = request.app.state.climate
+    try:
+        return await store.daily(lat, lon, year)
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from None
+    except ClimateError as e:
+        raise HTTPException(502, str(e)) from None
