@@ -1,0 +1,29 @@
+Blue Marble
+NASA Goddard Space Flight Center. Satellite mosaic of land, oceans and clouds.
+Distributed by NOAA Science On a Sphere.
+https://sos.noaa.gov/catalog/datasets/blue-marble/
+https://sos.noaa.gov/ftp_mirror/land/blue_marble/blue_marble/4096.jpg
+The local JPEGs are re-encoded and resized copies.
+
+San Joaquin Valley agricultural demonstration
+NASA / USGS / South Dakota State University Global WELD via NASA EOSDIS GIBS.
+Landsat_WELD_CorrectedReflectance_TrueColor_Global_Annual, 2000-12-01.
+https://nasa-gibs.github.io/gibs-api-docs/
+https://www.usgs.gov/landsat-missions/web-enabled-landsat-data-weld
+Image: san-joaquin-landsat.jpg, 1536 by 1024 pixels in EPSG:3857.
+Source: GoogleMapsCompatible_Level12, z12, columns 675-681, rows 1597-1601.
+Adjacent tiles from this one annual satellite composite were joined, cropped
+at native resolution and encoded as JPEG. No color adjustments were applied.
+WGS84 geographic bounds (west, south, east, north):
+-120.65082550048828, 36.497769483804646, -120.12348175048828, 36.77986732466111.
+
+Natural Earth global boundaries · 1:110m · Public domain
+https://www.naturalearthdata.com/about/terms-of-use/
+
+Space Grotesk
+https://github.com/google/fonts/tree/main/ofl/spacegrotesk
+Distributed under the SIL Open Font License 1.1. See spacegrotesk-OFL.txt.
+
+Instrument Serif
+https://github.com/google/fonts/tree/main/ofl/instrumentserif
+Distributed under the SIL Open Font License 1.1. See instrumentserif-OFL.txt.

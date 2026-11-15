@@ -1,0 +1,19 @@
+{
+  "name": "field-atlas-vekt",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host localhost --port 5175 --strictPort",
+    "build": "vite build",
+    "preview": "vite preview --host localhost --port 4175 --strictPort"
+  },
+  "dependencies": {
+    "@fontsource/barlow-condensed": "^5.2.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "leaflet": "1.9.4"
+  },
+  "devDependencies": {
+    "vite": "^7.3.0"
+  }
+}

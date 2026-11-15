@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#20172e" />
+    <title>Field Atlas — Parcel explorer</title>
+    <link rel="icon" href="./assets/mark.svg" />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <a href="#workspace" class="skip-link">Skip to field workspace</a>
+    <header class="mast">
+      <a class="brand" href="#overview" aria-label="Field Atlas overview"
+        ><img src="./assets/mark.svg" alt="" />Field Atlas</a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#overview">Overview</a><a href="#workspace">Workspace</a>
+      </nav>
+      <div class="status">
+        <span id="status">Connecting</span
+        ><button id="reconnect" hidden>Reconnect</button>
+      </div>
+    </header>
+    <main>
+      <section class="hero" id="overview" aria-labelledby="title">
+        <div class="hero-copy">
+          <h1 id="title">Field<br /><em>Atlas</em><span>.</span></h1>
+          <p>
+            Explore a field from orbit. Trace its boundary and read the
+            conditions shaping the land.
+          </p>
+          <div class="hero-actions">
+            <a class="primary" id="open-field" href="#workspace"
+              >Open sample field <span aria-hidden="true">↗</span></a
+            ><button class="text-button" id="draw-field">Draw a field</button>
+          </div>
+        </div>
+        <figure class="plate">
+          <figcaption>
+            <span
+              ><i class="registration" aria-hidden="true"></i> Çumra,
+              Konya</span
+            ><span>Türkiye</span>
+          </figcaption>
+          <div class="compare" id="compare">
+            <div class="plate-art satellite"></div>
+            <div class="plate-art survey"></div>
+            <div class="plate-art overlay" id="outline"></div>
+            <span class="view-label left">Field sketch</span
+            ><span class="view-label right">Satellite</span>
+            <span class="divider" aria-hidden="true"><b>‹ &nbsp; ›</b></span>
+            <input
+              id="split"
+              type="range"
+              min="0"
+              max="100"
+              value="44"
+              aria-label="Compare field sketch and satellite imagery"
+            />
+          </div>
+          <div class="plate-foot">
+            <span class="drag-icon" aria-hidden="true">↔</span> Drag to compare
+            <span>Imagery © Esri</span>
+          </div>
+        </figure>
+      </section>
+      <section id="workspace" aria-labelledby="workspace-title">
+        <div class="section-heading">
+          <h2 id="workspace-title" tabindex="-1">Field workspace</h2>
+          <a href="#overview">Back to overview ↑</a>
+        </div>
+        <div id="notice" class="notice" role="status" hidden>
+          <span></span><button id="keep" hidden>Stay connected</button>
+        </div>
+        <div class="work-grid">
+          <div class="map-column">
+            <div class="map-tools">
+              <button id="draw">Draw boundary</button
+              ><button id="edit">Edit vertices</button
+              ><button id="clear">Clear</button>
+            </div>
+            <div id="map" aria-label="Interactive parcel map"></div>
+            <div id="map-hint" class="map-hint" role="status" hidden></div>
+          </div>
+          <aside class="selection">
+            <h3 id="field-name">Çumra, Konya</h3>
+            <dl>
+              <div>
+                <dt>Parcel area</dt>
+                <dd id="area">—</dd>
+              </div>
+              <div>
+                <dt>Centre</dt>
+                <dd id="centre">—</dd>
+              </div>
+            </dl>
+            <label for="date">Analysis date</label
+            ><input
+              type="date"
+              id="date"
+              required
+              min="2000-01-01"
+              max="2100-12-31"
+            />
+            <button class="primary" id="analyze">
+              Analyze field <span aria-hidden="true">↗</span>
+            </button>
+            <p id="input-error" class="error" role="alert" hidden></p>
+          </aside>
+        </div>
+      </section>
+      <section id="results" aria-labelledby="result-heading">
+        <div class="section-heading">
+          <h2 id="result-heading">Field report</h2>
+          <span id="stage" role="status">Awaiting analysis</span>
+        </div>
+        <p id="result-empty">
+          Select a boundary and an analysis date to see field measurements and
+          analyst notes.
+        </p>
+        <p id="result-context"></p>
+        <div id="layers"></div>
+        <div id="conversation"></div>
+        <p id="job-error" class="error" role="alert" hidden></p>
+        <form id="ask-form" hidden>
+          <label for="message">Ask a follow-up</label>
+          <div class="ask-row">
+            <input
+              id="message"
+              placeholder="What would you like to know about this field?"
+              maxlength="2000"
+              required
+            />
+            <select id="agent" aria-label="Question recipient">
+              <option value="">All analysts</option>
+            </select>
+            <button class="primary" type="submit">
+              Ask <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </form>
+      </section>
+    </main>
+    <footer>
+      <span>Field Atlas</span><span>BufaloAI / Space Apps 2026</span>
+    </footer>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
