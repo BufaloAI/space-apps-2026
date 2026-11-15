@@ -15,6 +15,7 @@ import datetime as dt
 import json
 import logging
 import threading
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -41,7 +42,7 @@ def _noop(_stage: str, _info: dict) -> None:
 
 
 CONUS = (24.0, 50.0, -125.0, -66.0)  # CDL ve SSURGO yalnızca ABD (kıta) için
-_BG = ThreadPoolExecutor(max_workers=2, thread_name_prefix="ml-static")  # beklenmeden sürebilir (sonuç önbelleğe)
+_BG = ThreadPoolExecutor(max_workers=4, thread_name_prefix="ml-static")  # beklenmeden sürebilir (sonuç önbelleğe)
 
 
 def in_conus(lat: float, lon: float) -> bool:
@@ -64,7 +65,7 @@ class ParcelService:
         self.ndvi_timeout, self.ndvi_retries = ndvi_timeout, ndvi_retries
         self.power_timeout, self.power_retries = power_timeout, power_retries
         self.cache_days = cache_days
-        self.static_wait_s = 30.0  # NDVI bittikten sonra toprak/CDL için en fazla bu kadar daha beklenir
+        self.static_wait_s = 12.0  # NDVI bittikten sonra toprak/CDL için en fazla bu kadar daha beklenir (CDL sık çöker)
         self._lock = threading.Lock()
 
     # ------------------------------------------------------------ veri
@@ -150,32 +151,78 @@ class ParcelService:
             if (today - d).days > self.cache_days:
                 p.unlink(missing_ok=True)
 
-    def fetch_static(self, lat: float, lon: float, today: dt.date) -> dict:
-        """SSURGO toprak + CDL ürün geçmişi (yalnızca ABD). Günlük önbellekli. Hata -> boş sonuç."""
-        path = self.cache_dir / f"static_{lat:.3f}_{lon:.3f}_{today.isoformat()}.json"
+    def _cached(self, kind: str, lat: float, lon: float, today: dt.date) -> Path:
+        return self.cache_dir / f"{kind}_{lat:.3f}_{lon:.3f}_{today.isoformat()}.json"
+
+    def fetch_soil(self, lat: float, lon: float, today: dt.date) -> dict:
+        """SSURGO toprak (ABD). Hızlı (~1 sn). Günlük önbellekli."""
+        path = self._cached("soil", lat, lon, today)
         if path.exists():
             return json.loads(path.read_text())
-        out: dict = {"soil": None, "cdl": {}, "rotation": None, "errors": []}
         if not in_conus(lat, lon):
-            out["errors"].append("ABD dışı: toprak (SSURGO) ve ürün geçmişi (CDL) yok")
-            return out
+            return {"soil": None, "errors": []}
         from ml.data_load import fields as FL  # noqa: PLC0415
 
         cache = FL.default_cache()
         try:
-            out["soil"] = FL.soil_at(lat, lon, cache)
+            soil = FL.soil_at(lat, lon, cache)
         except Exception as e:  # noqa: BLE001
-            out["errors"].append(f"toprak alınamadı: {str(e)[:120]}")
-        try:
-            hist = FL.cdl_history(lat, lon, range(today.year - 6, today.year), cache, workers=3)
-            out["cdl"] = {str(int(y)): (None if pd.isna(k) else str(k)) for y, k in zip(hist["year"], hist["crop_key"])}
-            out["rotation"] = FL.infer_rotation(hist)
-        except Exception as e:  # noqa: BLE001
-            out["errors"].append(f"ürün geçmişi alınamadı: {str(e)[:120]}")
-        cache.flush()
-        if out["soil"] is not None or any(v for v in out["cdl"].values()):
+            return {"soil": None, "errors": [f"toprak alınamadı: {str(e)[:120]}"]}
+        finally:
+            cache.flush()
+        out = {"soil": soil, "errors": []}
+        if soil is not None:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             path.write_text(json.dumps(out, default=str))
+        return out
+
+    def fetch_cdl(self, lat: float, lon: float, today: dt.date) -> dict:
+        """USDA CDL ürün geçmişi (ABD, son 6 yıl) + çıkarılan mevcut rotasyon. Servis sık sık yavaş/çökük.
+        Günlük önbellekli; zamanında gelmezse arka planda sürer ve sonraki analizde önbellekten gelir."""
+        path = self._cached("cdl", lat, lon, today)
+        if path.exists():
+            return json.loads(path.read_text())
+        if not in_conus(lat, lon):
+            return {"cdl": {}, "rotation": None, "errors": []}
+        from ml.data_load import fields as FL  # noqa: PLC0415
+
+        cache = FL.default_cache()
+        try:
+            hist = FL.cdl_history(lat, lon, range(today.year - 6, today.year), cache, workers=3)
+        except Exception as e:  # noqa: BLE001
+            return {"cdl": {}, "rotation": None, "errors": [f"ürün geçmişi alınamadı: {str(e)[:120]}"]}
+        finally:
+            cache.flush()
+        cdl = {str(int(y)): (None if pd.isna(k) else str(k)) for y, k in zip(hist["year"], hist["crop_key"])}
+        out = {"cdl": cdl, "rotation": FL.infer_rotation(hist), "errors": []}
+        if any(cdl.values()):
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(out, default=str))
+        return out
+
+    def start_static(self, lat: float, lon: float, today: dt.date) -> dict:
+        """Toprak ve CDL'yi ayrı ayrı arka planda başlatır (biri yavaşsa diğeri beklemez)."""
+        return {"soil": _BG.submit(self.fetch_soil, lat, lon, today),
+                "cdl": _BG.submit(self.fetch_cdl, lat, lon, today)}
+
+    def fetch_static(self, lat: float, lon: float, today: dt.date, started: dict | None = None) -> dict:
+        """Toprak + CDL sonucunu toplar; her biri için en fazla `static_wait_s` bekler. Gelmeyen boş kalır."""
+        futs = started or self.start_static(lat, lon, today)
+        out: dict = {"soil": None, "cdl": {}, "rotation": None, "errors": []}
+        if not in_conus(lat, lon):
+            out["errors"].append("ABD dışı: toprak (SSURGO) ve ürün geçmişi (CDL) yok")
+        deadline = time.monotonic() + self.static_wait_s
+        for kind, label in (("soil", "toprak (SSURGO)"), ("cdl", "ürün geçmişi (CDL)")):
+            try:
+                res = futs[kind].result(timeout=max(0.1, deadline - time.monotonic()))
+            except Exception:  # noqa: BLE001  (zaman aşımı: arka planda sürer, sonuç önbelleğe yazılır)
+                out["errors"].append(f"{label} zamanında gelmedi")
+                continue
+            out["errors"] += res.get("errors", [])
+            if kind == "soil":
+                out["soil"] = res.get("soil")
+            else:
+                out["cdl"], out["rotation"] = res.get("cdl", {}), res.get("rotation")
         return out
 
     def build_features(self, raw: pd.DataFrame) -> pd.DataFrame:
@@ -193,14 +240,11 @@ class ParcelService:
                 priorities: dict | None = None, profile: dict | None = None,
                 progress: Progress = _noop) -> dict:
         today = today or dt.date.today()
-        static_fut = _BG.submit(self.fetch_static, lat, lon, today)  # NDVI beklenirken paralel
+        started = self.start_static(lat, lon, today)  # NDVI beklenirken paralel
         raw, status = self.fetch(lat, lon, today, progress)
-        try:
-            stat = static_fut.result(timeout=self.static_wait_s)
-            progress("data", {"source": "soil_crop_history", "status": "done"})
-        except Exception:  # noqa: BLE001  (zaman aşımı: arka planda sürer, sonraki analizde önbellekten gelir)
-            stat = {"soil": None, "cdl": {}, "rotation": None, "errors": ["toprak/ürün geçmişi zamanında gelmedi"]}
-            progress("data", {"source": "soil_crop_history", "status": "failed"})
+        stat = self.fetch_static(lat, lon, today, started=started)
+        progress("data", {"source": "soil", "status": "done" if stat.get("soil") else "failed"})
+        progress("data", {"source": "crop_history", "status": "done" if any(stat.get("cdl", {}).values()) else "failed"})
         progress("features", {"status": "started"})
         feats = self.build_features(raw)
         cdl_hist = {int(y): k for y, k in stat.get("cdl", {}).items()}
@@ -289,6 +333,19 @@ class ParcelService:
 
 
 # ---------------------------------------------------------------- backend Layer biçimi
+def ndvi_label(v: float) -> str:
+    """NDVI sayısını yorum etiketine çevirir (yorum backend'de; model sayıyı yanlış okumasın)."""
+    if v < 0.15:
+        return "çıplak toprak / bitki yok"
+    if v < 0.30:
+        return "çok seyrek bitki örtüsü (hasat sonrası, ekim öncesi ya da kış olabilir)"
+    if v < 0.50:
+        return "seyrek-orta bitki örtüsü (gelişme başı ya da stresli bitki olabilir)"
+    if v < 0.70:
+        return "orta-yoğun bitki örtüsü"
+    return "yoğun, sağlıklı bitki örtüsü"
+
+
 def _damage_text(rec: dict, n: int = 3) -> str:
     parts = []
     for d in rec["damages"][:n]:
@@ -345,7 +402,10 @@ def to_layers(res: dict) -> list[dict]:
         layers.append({
             "name": "ndvi_tahmin", "label": f"{f['target_week']} haftası bitki örtüsü tahmini (NDVI)", "unit": "NDVI",
             "mean": f["ndvi_p50"], "min": f["ndvi_p10"], "max": f["ndvi_p90"], "confidence": conf,
-            "note": (f"Son uydu ölçümü {f['ndvi_last_observed']:.2f} ({f['ndvi_last_observed_week']} haftası). "
+            "note": (f"Tahmin edilen durum: {ndvi_label(f['ndvi_p50'])}. Son uydu ölçümü "
+                     f"{f['ndvi_last_observed']:.2f} = {ndvi_label(f['ndvi_last_observed'])} "
+                     f"({f['ndvi_last_observed_week']} haftası). NDVI ölçeği: <0.3 çok seyrek/çıplak, "
+                     "0.3-0.5 seyrek-orta, 0.5-0.7 orta-yoğun, >0.7 yoğun. "
                      f"Aralık %80 tahmin aralığıdır. En etkili etkenler: {top}."
                      + (" Uydu gecikmesi nedeniyle bu, bugüne yakın durumun tahminidir." if f["is_nowcast"] else "")
                      + tag),

@@ -28,6 +28,10 @@ class Model:
         self.point.load_model(self.path / "model.ubj")
         self.quant = xgb.Booster()
         self.quant.load_model(self.path / "quantile_model.ubj")
+        # GPU'da eğitilen model "device=cuda" ile kaydedilir; tahmin her zaman CPU'da (backend makinesinde GPU yok,
+        # tek satır için CPU zaten milisaniyeler) -> uyarı/yavaş geri dönüş olmasın
+        for b in (self.point, self.quant):
+            b.set_param({"device": "cpu"})
         cal = self.path / "calibration.json"
         self.calibration: dict = json.loads(cal.read_text()) if cal.exists() else {}
         self.climatology = pd.read_parquet(self.path / "climatology.parquet")

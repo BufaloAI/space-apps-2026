@@ -102,7 +102,10 @@ def client(monkeypatch, model_dir, fake_raw, tmp_path):
               "cdl": {"2020": "corn", "2021": "soybean", "2022": "corn", "2023": "soybean", "2024": "corn",
                       "2025": "soybean"},
               "rotation": {"rotation": "corn>soybean", "confidence": 1.0}, "errors": []}
-    monkeypatch.setattr(S.ParcelService, "fetch_static", lambda self, lat, lon, today: static)  # ağa çıkma
+    monkeypatch.setattr(S.ParcelService, "fetch_soil", lambda self, lat, lon, today: {"soil": static["soil"],
+                                                                                      "errors": []})  # ağa çıkma
+    monkeypatch.setattr(S.ParcelService, "fetch_cdl", lambda self, lat, lon, today: {
+        "cdl": static["cdl"], "rotation": static["rotation"], "errors": []})
     monkeypatch.setenv("VLLM_API_KEY", "test-key")
     monkeypatch.setenv("ML_PROVIDER", "xgboost")
     monkeypatch.setenv("ML_MODEL_DIR", str(model_dir))
@@ -243,3 +246,26 @@ def test_ndvi_falls_back_to_ornl_when_planetary_down(client):
     assert prov == ["ornl"] and client.calls["ndvi"] == 1
     done = next(e for e in ev if e.get("stage") == "ml" and e.get("status") == "done")
     assert any(lay["name"] == "ndvi_tahmin" for lay in done["layers"])
+
+
+def test_slow_cdl_does_not_block_soil(model_dir, tmp_path, monkeypatch):
+    import datetime as dt
+    import time as _t
+
+    from ml.service import ParcelService
+
+    svc = ParcelService(model_dir=model_dir, cache_dir=tmp_path)
+    svc.static_wait_s = 0.5
+    monkeypatch.setattr(ParcelService, "fetch_soil", lambda self, *a: {"soil": {"om_pct": 3.0}, "errors": []})
+    monkeypatch.setattr(ParcelService, "fetch_cdl", lambda self, *a: _t.sleep(3) or {"cdl": {}, "rotation": None,
+                                                                                     "errors": []})
+    t0 = _t.monotonic()
+    out = svc.fetch_static(42.0, -93.6, dt.date(2026, 11, 15))
+    assert _t.monotonic() - t0 < 2  # CDL'yi beklemedi
+    assert out["soil"] == {"om_pct": 3.0} and any("CDL" in e for e in out["errors"])
+
+
+def test_ndvi_label():
+    from ml.service import ndvi_label
+
+    assert "çok seyrek" in ndvi_label(0.27) and "yoğun, sağlıklı" in ndvi_label(0.85)
