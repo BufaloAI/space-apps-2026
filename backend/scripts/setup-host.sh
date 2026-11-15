@@ -3,7 +3,9 @@
 # Cloudflare tunnel. Safe to re-run. Usage (from anywhere):
 #
 #   backend/scripts/setup-host.sh            # check, install, build, start on http://127.0.0.1:8000
-#   backend/scripts/setup-host.sh --tunnel   # ... and publish it with a public https://*.trycloudflare.com link
+#   backend/scripts/setup-host.sh --tunnel   # ... and publish it: named tunnel if ~/.cloudflared/bufaloai.yml
+#                                            # exists (fixed address), else a https://*.trycloudflare.com link
+#   (add --force to restart even while someone is using the site)
 #   backend/scripts/setup-host.sh --check    # only run the checks
 #
 # The language model stays on the GPU server; this machine reaches it over Tailscale (VLLM_BASE_URL in .env).
@@ -12,14 +14,15 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT/backend/.env"
 SITE="$ROOT/bufaloai-site"
-UNIT_DIR="$HOME/.config/systemd/user"
 PORT="${PORT:-8000}"
 TUNNEL=0
 CHECK_ONLY=0
+FORCE=""
 for a in "$@"; do
   case "$a" in
     --tunnel) TUNNEL=1 ;;
     --check) CHECK_ONLY=1 ;;
+    --force) FORCE=--force ;;
     *) echo "Unknown option: $a" >&2; exit 2 ;;
   esac
 done
@@ -92,50 +95,20 @@ echo "== Install and build"
 (cd "$SITE" && NODE_OPTIONS=--dns-result-order=ipv4first npm ci --no-audit --no-fund && npm run build)
 grep -q '^SITE_DIR=' "$ENV_FILE" || { printf '\n# Built site served by the backend (one port for site + API)\nSITE_DIR=bufaloai-site/dist\n' >> "$ENV_FILE"; ok "SITE_DIR added to backend/.env"; }
 
-echo "== systemd user services"
-mkdir -p "$UNIT_DIR"
-cat > "$UNIT_DIR/space-backend.service" <<EOF
-[Unit]
-Description=Space Apps 2026 backend + site (FastAPI)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-WorkingDirectory=$ROOT
-ExecStart=$(command -v uv) run uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port $PORT --workers 1
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-EOF
-ok "wrote $UNIT_DIR/space-backend.service"
+echo "== Services (systemd user units, start at boot) via: bufaloai install"
+# Named tunnel if ~/.cloudflared/bufaloai.yml exists (fixed address, e.g. spaceapps.nasko.tech), else a quick tunnel.
 if [ "$TUNNEL" = 1 ]; then
-  cat > "$UNIT_DIR/space-tunnel.service" <<EOF
-[Unit]
-Description=Public Cloudflare quick tunnel to the Space Apps site
-After=space-backend.service network-online.target
-Wants=space-backend.service
-
-[Service]
-ExecStart=$(command -v cloudflared) tunnel --no-autoupdate --url http://127.0.0.1:$PORT
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-EOF
-  ok "wrote $UNIT_DIR/space-tunnel.service"
+  if [ -f "$HOME/.cloudflared/bufaloai.yml" ]; then
+    "$ROOT/backend/scripts/bufaloai" install --named-tunnel "$HOME/.cloudflared/bufaloai.yml" --port "$PORT" $FORCE
+  else
+    "$ROOT/backend/scripts/bufaloai" install --quick-tunnel --port "$PORT" $FORCE
+  fi
+else
+  "$ROOT/backend/scripts/bufaloai" install --no-tunnel --port "$PORT" $FORCE
 fi
-systemctl --user daemon-reload
-systemctl --user enable --now space-backend.service
-systemctl --user restart space-backend.service
-[ "$TUNNEL" = 1 ] && systemctl --user enable --now space-tunnel.service && systemctl --user restart space-tunnel.service
-loginctl show-user "$USER" -p Linger 2>/dev/null | grep -q yes || warn "run 'sudo loginctl enable-linger $USER' so the services start at boot without logging in"
-
-for _ in $(seq 1 40); do curl -s -o /dev/null "http://127.0.0.1:$PORT/api/health" && break; sleep 1; done
-curl -s "http://127.0.0.1:$PORT/api/health" >/dev/null && ok "running: http://127.0.0.1:$PORT" || fail "backend did not start: journalctl --user -u space-backend -n 50"
-if [ "$TUNNEL" = 1 ]; then
+sleep 5
+"$ROOT/backend/scripts/bufaloai" check || true
+if [ "$TUNNEL" = 1 ] && [ ! -f "$HOME/.cloudflared/bufaloai.yml" ]; then
   for _ in $(seq 1 30); do
     LINK="$(journalctl --user -u space-tunnel --since '-2min' --no-pager 2>/dev/null | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1 || true)"
     [ -n "$LINK" ] && break; sleep 1
@@ -143,3 +116,4 @@ if [ "$TUNNEL" = 1 ]; then
   [ -n "${LINK:-}" ] && ok "public link: $LINK  (changes when the tunnel restarts)" \
     || warn "tunnel link not found yet: journalctl --user -u space-tunnel | grep trycloudflare"
 fi
+echo "Manage with: bufaloai status | logs | restart | update   (bufaloai help)"

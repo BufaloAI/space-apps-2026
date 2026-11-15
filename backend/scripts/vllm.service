@@ -3,6 +3,8 @@ Description=vLLM API sunucusu (Qwen3-8B-FP8)
 After=network-online.target
 Wants=network-online.target
 ConditionPathExists=/home/nasko/vllm-env/bin/vllm
+# Açılışta GPU sürücüsü geç hazır olabilir ya da vLLM çökebilir: denemeyi hiç bırakma.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple
@@ -16,7 +18,7 @@ Environment=PATH=/home/nasko/vllm-env/bin:/usr/local/bin:/usr/bin:/bin
 Environment=HF_HUB_OFFLINE=1
 # Betik key'i terminalde basar, serviste günlüğe yazmaz; key ~/.vllm_api_key dosyasındadır.
 ExecStart=/home/nasko/Masaüstü/vllm/vllm_serve.sh
-Restart=on-failure
+Restart=always
 RestartSec=15
 TimeoutStopSec=60
 LimitNOFILE=65536

@@ -1,0 +1,359 @@
+#!/usr/bin/env bash
+# bufaloai — run and look after the hosted BUFALOAI stack on this machine (site + API/ML/chatbot wrapper + tunnel).
+#
+#   bufaloai status              what is running, and a quick health check
+#   bufaloai check [--notify]    full health check (exit code = number of problems)
+#   bufaloai start|stop|restart  all services (backend, tunnel, watchdog); restart refuses during an active
+#                                session unless --force (sessions live in memory)
+#   bufaloai logs [backend|tunnel|watchdog]   follow logs
+#   bufaloai update [--rebuild|--force]  git pull + install + rebuild site + restart + check
+#   bufaloai enable|disable      start at boot on/off
+#   bufaloai install [--named-tunnel CONFIG | --quick-tunnel | --no-tunnel] [--public-url URL]
+#                                (re)write the systemd user units and enable them (used by setup-host.sh)
+#   bufaloai watchdog            one watchdog round (run every 2 min by space-watchdog.timer)
+#
+# Settings live in ~/.config/bufaloai/bufaloai.conf (written by `install`).
+set -uo pipefail
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+CONF_DIR="$HOME/.config/bufaloai"
+CONF="$CONF_DIR/bufaloai.conf"
+STATE="$HOME/.local/state/bufaloai"
+UNIT_DIR="$HOME/.config/systemd/user"
+UNITS=(space-backend.service space-tunnel.service space-watchdog.timer space-bootcheck.timer)
+
+# defaults, overridden by the conf file
+ROOT="$(cd "$(dirname "$SELF")/../.." && pwd)"
+PORT=8000
+PUBLIC_URL=""
+TUNNEL_MODE="none"        # named | quick | none
+TUNNEL_CONFIG=""
+[ -f "$CONF" ] && . "$CONF"
+ENV_FILE="$ROOT/backend/.env"
+LOCAL="http://127.0.0.1:$PORT"
+mkdir -p "$STATE"
+
+c_ok() { printf '  \e[32m✓\e[0m %-16s %s\n' "$1" "$2"; }
+c_bad() { printf '  \e[31m✗\e[0m %-16s %s\n' "$1" "$2"; }
+c_warn() { printf '  \e[33m!\e[0m %-16s %s\n' "$1" "$2"; }
+log() { echo "$(date '+%F %T') $*"; }
+envval() { grep -m1 "^$1=" "$ENV_FILE" 2>/dev/null | cut -d= -f2-; }
+
+notify() { # $1 = urgency, $2 = text; best effort (desktop may not be logged in)
+  command -v notify-send >/dev/null || return 0
+  DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=/run/user/$(id -u)/bus}" \
+    notify-send -u "$1" -a BUFALOAI "BUFALOAI" "$2" 2>/dev/null || true
+}
+
+# ---------------------------------------------------------------- probes (0 = ok)
+probe_backend() { curl -fs -m 8 -o /dev/null "$LOCAL/api/health"; }
+probe_site() { curl -fs -m 8 "$LOCAL/" 2>/dev/null | grep -q 'id="root"'; }
+
+# Restarting ends the active user's session (sessions live in memory). Refuse unless --force.
+guard_active() { # $1 = what we are about to do, $2 = "--force" to skip
+  [ "${2:-}" = "--force" ] && return 0
+  local h
+  h="$(curl -fs -m 5 "$LOCAL/api/health" 2>/dev/null)" || return 0
+  if echo "$h" | grep -q '"active":true\|"queue_length":[1-9]'; then
+    echo "Someone is using the site right now ($h)."
+    echo "'$1' would end their session. Wait, or run again with --force."
+    return 1
+  fi
+}
+probe_llm() {
+  local url key
+  url="$(envval VLLM_BASE_URL)"; url="${url:-http://100.96.165.43:8000/v1}"
+  key="$(envval VLLM_API_KEY)"
+  [ "$(curl -s -m 8 -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $key" "$url/models")" = 200 ]
+}
+probe_public() { # via Cloudflare DNS-over-HTTPS so a stale local DNS cache cannot fool us
+  [ -n "$PUBLIC_URL" ] || return 0
+  curl -fsS -m 15 --doh-url https://1.1.1.1/dns-query -o /dev/null "$PUBLIC_URL/api/health" 2>/dev/null \
+    || curl -fsS -m 15 -o /dev/null "$PUBLIC_URL/api/health"
+}
+probe_tailscale() { command -v tailscale >/dev/null && tailscale status >/dev/null 2>&1; }
+probe_nasa() { curl -fsS -4 -m 10 -o /dev/null https://power.larc.nasa.gov/; }
+active() { systemctl --user is-active --quiet "$1"; }
+
+# ---------------------------------------------------------------- commands
+cmd_check() {
+  local notify_on=0 fails=0 msgs=()
+  [ "${1:-}" = "--notify" ] && notify_on=1
+  echo "BUFALOAI check ($(date '+%F %T'))"
+  if probe_backend; then c_ok backend "$LOCAL/api/health"; else c_bad backend "not answering ($LOCAL) → bufaloai logs backend"; fails=$((fails+1)); msgs+=("backend down"); fi
+  if probe_site; then c_ok site "served by the backend"; else c_bad site "no index.html (SITE_DIR? npm run build?)"; fails=$((fails+1)); msgs+=("site missing"); fi
+  if probe_tailscale; then c_ok tailscale "up"; else c_bad tailscale "down → sudo systemctl enable --now tailscaled"; fails=$((fails+1)); msgs+=("tailscale down"); fi
+  if probe_llm; then c_ok "language model" "$(envval VLLM_BASE_URL)"; else c_bad "language model" "unreachable → GPU server on? vllm.service running? (bots will fail)"; fails=$((fails+1)); msgs+=("chatbot model unreachable"); fi
+  case "$TUNNEL_MODE" in
+    none) c_warn tunnel "not configured (site only local)" ;;
+    *)
+      if ! active space-tunnel.service; then c_bad tunnel "service stopped → bufaloai restart"; fails=$((fails+1)); msgs+=("tunnel stopped")
+      elif [ -n "$PUBLIC_URL" ] && ! probe_public; then c_bad public "$PUBLIC_URL not answering (DNS record? tunnel logs?)"; fails=$((fails+1)); msgs+=("public site down")
+      else c_ok public "${PUBLIC_URL:-quick tunnel: $(quick_link)}"; fi ;;
+  esac
+  if probe_nasa; then c_ok "NASA data" "power.larc.nasa.gov reachable"; else c_warn "NASA data" "unreachable (analyses will fail)"; fi
+  for u in space-watchdog.timer space-bootcheck.timer; do
+    systemctl --user is-enabled --quiet "$u" 2>/dev/null || c_warn "$u" "not enabled → bufaloai enable"
+  done
+  if [ "$fails" = 0 ]; then
+    echo "All good."
+  else
+    echo "$fails problem(s)."
+    [ "$notify_on" = 1 ] && notify critical "Problem: ${msgs[*]}. Run: bufaloai check"
+  fi
+  return "$fails"
+}
+
+quick_link() {
+  journalctl --user -u space-tunnel --no-pager 2>/dev/null | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' | tail -1
+}
+
+cmd_status() {
+  for u in space-backend.service space-tunnel.service space-watchdog.timer space-bootcheck.timer; do
+    printf '  %-24s %-9s boot=%s\n' "$u" "$(systemctl --user is-active "$u" 2>/dev/null)" \
+      "$(systemctl --user is-enabled "$u" 2>/dev/null)"
+  done
+  printf '  %-24s %s\n' "tailscaled (system)" "$(systemctl is-active tailscaled 2>/dev/null) boot=$(systemctl is-enabled tailscaled 2>/dev/null)"
+  printf '  %-24s %s\n' "linger (boot w/o login)" "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null)"
+  echo
+  cmd_check
+}
+
+cmd_watchdog() {
+  # Two consecutive failures before acting (a single slow answer is not an outage).
+  local f
+  if probe_backend; then
+    rm -f "$STATE/backend_fail"
+  else
+    f=$(( $(cat "$STATE/backend_fail" 2>/dev/null || echo 0) + 1 )); echo "$f" > "$STATE/backend_fail"
+    log "backend health failed ($f)"
+    if [ "$f" -ge 2 ]; then
+      log "restarting space-backend"; systemctl --user restart space-backend.service
+      notify normal "Backend was not answering and has been restarted."; rm -f "$STATE/backend_fail"
+    fi
+  fi
+  if [ "$TUNNEL_MODE" != none ] && probe_backend; then
+    if probe_public; then
+      rm -f "$STATE/public_fail"
+    else
+      f=$(( $(cat "$STATE/public_fail" 2>/dev/null || echo 0) + 1 )); echo "$f" > "$STATE/public_fail"
+      log "public check failed ($f)"
+      if [ "$f" -ge 2 ]; then
+        log "restarting space-tunnel"; systemctl --user restart space-tunnel.service
+        notify normal "Public site was not answering; tunnel restarted."; rm -f "$STATE/public_fail"
+      fi
+    fi
+  fi
+  # The language model runs on the GPU server: we can only report state changes, not restart it.
+  local now prev
+  if probe_llm; then now=up; else now=down; fi
+  prev="$(cat "$STATE/llm" 2>/dev/null || echo unknown)"
+  if [ "$now" != "$prev" ]; then
+    echo "$now" > "$STATE/llm"
+    log "language model is $now"
+    [ "$now" = down ] && notify critical "Chatbot model (GPU server) is unreachable. Bots will fail until it is back."
+    [ "$now" = up ] && [ "$prev" = down ] && notify normal "Chatbot model is reachable again."
+  fi
+  return 0
+}
+
+all_units() { systemctl --user "$1" "${UNITS[@]}"; }
+cmd_start() { all_units start && cmd_check; }
+cmd_stop() { systemctl --user stop space-watchdog.timer space-bootcheck.timer space-tunnel.service space-backend.service; echo "stopped (still starts at next boot unless: bufaloai disable)"; }
+cmd_restart() { guard_active restart "${1:-}" || return 1; systemctl --user restart space-backend.service; [ "$TUNNEL_MODE" != none ] && systemctl --user restart space-tunnel.service; sleep 3; wait_backend; cmd_check; }
+cmd_enable() { systemctl --user enable --now "${UNITS[@]}" && echo "starts at boot"; }
+cmd_disable() { systemctl --user disable "${UNITS[@]}" && echo "no longer starts at boot (still running now; bufaloai stop)"; }
+
+cmd_logs() {
+  case "${1:-backend}" in
+    backend) journalctl --user -u space-backend -f ;;
+    tunnel) journalctl --user -u space-tunnel -f ;;
+    watchdog) journalctl --user -u space-watchdog -u space-bootcheck -f ;;
+    *) echo "logs: backend | tunnel | watchdog" >&2; return 2 ;;
+  esac
+}
+
+wait_backend() { for _ in $(seq 1 60); do probe_backend && return 0; sleep 1; done; return 1; }
+
+cmd_update() {
+  guard_active update "${1:-}" || return 1
+  set -e
+  cd "$ROOT"
+  local before after
+  before="$(git rev-parse HEAD)"
+  git pull --ff-only
+  after="$(git rev-parse HEAD)"
+  uv sync
+  if [ "$before" = "$after" ] && [ -f bufaloai-site/dist/index.html ] && [ "${1:-}" != "--force" ] \
+     && [ "${1:-}" != "--rebuild" ]; then
+    echo "no new commits (use: bufaloai update --rebuild to rebuild anyway)"
+  else
+    (cd bufaloai-site && NODE_OPTIONS=--dns-result-order=ipv4first npm ci --no-audit --no-fund && npm run build)
+  fi
+  set +e
+  systemctl --user restart space-backend.service
+  wait_backend
+  cmd_check
+}
+
+write_unit() { # $1 = file name, stdin = content
+  cat > "$UNIT_DIR/$1"
+  echo "  wrote $UNIT_DIR/$1"
+}
+
+cmd_install() {
+  local mode="" cfg="" url="$PUBLIC_URL" force=""
+  for a in "$@"; do [ "$a" = "--force" ] && force=--force; done
+  guard_active install "$force" || return 1
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --force) shift ;;
+      --named-tunnel) mode=named; cfg="$2"; shift 2 ;;
+      --quick-tunnel) mode=quick; shift ;;
+      --no-tunnel) mode=none; shift ;;
+      --public-url) url="$2"; shift 2 ;;
+      --port) PORT="$2"; shift 2 ;;
+      *) echo "install: unknown option $1" >&2; return 2 ;;
+    esac
+  done
+  if [ -z "$mode" ]; then # keep what was configured, else detect a named tunnel config
+    mode="$TUNNEL_MODE"; cfg="$TUNNEL_CONFIG"
+    if [ "$mode" = none ] && [ -f "$HOME/.cloudflared/bufaloai.yml" ]; then mode=named; cfg="$HOME/.cloudflared/bufaloai.yml"; fi
+  fi
+  if [ "$mode" = named ]; then
+    [ -f "$cfg" ] || { echo "tunnel config not found: $cfg" >&2; return 1; }
+    if [ -z "$url" ]; then
+      url="https://$(grep -m1 'hostname:' "$cfg" | awk '{print $NF}')"
+    fi
+  fi
+  [ "$mode" = quick ] && url=""
+  local cf uv_bin
+  cf="$(command -v cloudflared || echo "$HOME/.local/bin/cloudflared")"
+  [ -x "$ROOT/.venv/bin/python" ] || { echo "no .venv: run 'uv sync' in $ROOT first" >&2; return 1; }
+  mkdir -p "$CONF_DIR" "$UNIT_DIR" "$HOME/.local/bin"
+  cat > "$CONF" <<EOF
+# written by: bufaloai install  ($(date '+%F %T'))
+ROOT="$ROOT"
+PORT=$PORT
+PUBLIC_URL="$url"
+TUNNEL_MODE=$mode
+TUNNEL_CONFIG="$cfg"
+EOF
+  echo "  wrote $CONF"
+  ln -sf "$SELF" "$HOME/.local/bin/bufaloai"
+  echo "  linked ~/.local/bin/bufaloai"
+
+  # Backend: the .venv python directly (no uv at boot: works offline, starts faster).
+  write_unit space-backend.service <<EOF
+[Unit]
+Description=BUFALOAI backend: site + API + ML + chatbot wrapper (port $PORT)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+WorkingDirectory=$ROOT
+Environment=PYTHONUNBUFFERED=1
+ExecStart=$ROOT/.venv/bin/python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port $PORT --workers 1
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+
+[Install]
+WantedBy=default.target
+EOF
+  local run
+  case "$mode" in
+    named) run="$cf --no-autoupdate tunnel --config $cfg run" ;;
+    quick) run="$cf --no-autoupdate tunnel --url http://127.0.0.1:$PORT" ;;
+    none) run="" ;;
+  esac
+  if [ -n "$run" ]; then
+    write_unit space-tunnel.service <<EOF
+[Unit]
+Description=BUFALOAI Cloudflare tunnel (${url:-quick tunnel}) -> 127.0.0.1:$PORT
+After=space-backend.service network-online.target
+Wants=space-backend.service network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=$run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+  else
+    systemctl --user disable --now space-tunnel.service 2>/dev/null
+    rm -f "$UNIT_DIR/space-tunnel.service"
+  fi
+  write_unit space-watchdog.service <<EOF
+[Unit]
+Description=BUFALOAI watchdog round (restart backend/tunnel if they stop answering)
+
+[Service]
+Type=oneshot
+ExecStart=$SELF watchdog
+EOF
+  write_unit space-watchdog.timer <<EOF
+[Unit]
+Description=BUFALOAI watchdog every 2 minutes
+
+[Timer]
+OnStartupSec=3min
+OnUnitActiveSec=2min
+AccuracySec=15s
+
+[Install]
+WantedBy=timers.target
+EOF
+  write_unit space-bootcheck.service <<EOF
+[Unit]
+Description=BUFALOAI health check after boot (log + desktop notification on problems)
+
+[Service]
+Type=oneshot
+ExecStart=$SELF check --notify
+SuccessExitStatus=0 1 2 3 4 5 6 7
+EOF
+  write_unit space-bootcheck.timer <<EOF
+[Unit]
+Description=BUFALOAI health check 90 s after boot
+
+[Timer]
+OnStartupSec=90s
+
+[Install]
+WantedBy=timers.target
+EOF
+  local units=(space-backend.service space-watchdog.timer space-bootcheck.timer)
+  [ -n "$run" ] && units+=(space-tunnel.service)
+  systemctl --user daemon-reload
+  systemctl --user enable "${units[@]}" >/dev/null 2>&1
+  systemctl --user restart space-backend.service
+  [ -n "$run" ] && systemctl --user restart space-tunnel.service
+  systemctl --user start space-watchdog.timer space-bootcheck.timer
+  echo "  enabled at boot: ${units[*]}"
+  loginctl show-user "$USER" -p Linger --value 2>/dev/null | grep -q yes \
+    || echo "  ! run once: sudo loginctl enable-linger $USER   (start at boot without logging in)"
+  systemctl is-enabled --quiet tailscaled 2>/dev/null \
+    || echo "  ! run once: sudo systemctl enable --now tailscaled   (chatbot model link at boot)"
+  wait_backend || echo "  ! backend not up yet: bufaloai logs backend"
+}
+
+case "${1:-status}" in
+  status) cmd_status ;;
+  check) shift; cmd_check "$@" ;;
+  start) cmd_start ;;
+  stop) cmd_stop ;;
+  restart) shift; cmd_restart "$@" ;;
+  logs) shift; cmd_logs "$@" ;;
+  update) shift; cmd_update "$@" ;;
+  enable) cmd_enable ;;
+  disable) cmd_disable ;;
+  install) shift; cmd_install "$@" ;;
+  watchdog) cmd_watchdog ;;
+  -h|--help|help) awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$SELF" ;;
+  *) echo "unknown command: $1 (bufaloai help)" >&2; exit 2 ;;
+esac
